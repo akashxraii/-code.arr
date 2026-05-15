@@ -1,0 +1,58 @@
+const express = require('express');
+const { pool, hasDatabase } = require('../db');
+const { problems: fallbackProblems } = require('../services/problemFallback');
+const { runAgainstTests } = require('../services/codeRunner');
+
+const router = express.Router();
+
+async function getProblemAndTests(problemSlug, mode) {
+  if (!hasDatabase) {
+    const problem = fallbackProblems.find((item) => item.slug === problemSlug);
+    const tests = problem?.testCases.filter((test) => mode === 'submit' || test.is_sample) || [];
+    return { problem, tests };
+  }
+
+  const problemResult = await pool.query('SELECT * FROM problems WHERE slug = $1', [problemSlug]);
+  const problem = problemResult.rows[0];
+  if (!problem) return { problem: null, tests: [] };
+
+  const params = mode === 'submit' ? [problem.id] : [problem.id, true];
+  const where = mode === 'submit' ? 'problem_id = $1' : 'problem_id = $1 AND is_sample = $2';
+  const testsResult = await pool.query(
+    `SELECT input, expected_output, is_sample FROM test_cases WHERE ${where} ORDER BY id ASC`,
+    params,
+  );
+  return { problem, tests: testsResult.rows };
+}
+
+router.post('/', async (req, res, next) => {
+  const { problemSlug, language = 'javascript', code, mode = 'run' } = req.body;
+
+  if (!problemSlug || !code) {
+    return res.status(400).json({ error: 'problemSlug and code are required' });
+  }
+
+  try {
+    const { problem, tests } = await getProblemAndTests(problemSlug, mode);
+    if (!problem) return res.status(404).json({ error: 'Problem not found' });
+    if (tests.length === 0) return res.status(400).json({ error: 'No test cases found' });
+
+    const startedAt = Date.now();
+    const result = await runAgainstTests({ code, language, tests });
+    const runtime = Date.now() - startedAt;
+    const passed = result.results.filter((item) => item.status === 'passed').length;
+
+    res.json({
+      status: result.error ? 'runtime_error' : passed === tests.length ? 'accepted' : 'wrong_answer',
+      passed,
+      total: tests.length,
+      runtime,
+      results: result.results,
+      error: result.error,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+module.exports = router;
