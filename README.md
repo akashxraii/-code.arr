@@ -1,6 +1,6 @@
 # {}code.arr Platform
 
-TechnoCode is a LeetCode/HackerRank-style coding practice platform with a mandatory AI mock interview module.
+{}code.arr is a LeetCode/HackerRank-style coding practice platform with a mandatory AI mock interview module.
 
 ## Structure
 
