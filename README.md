@@ -1,4 +1,4 @@
-# TechnoCode Platform
+# {}code.arr Platform
 
 TechnoCode is a LeetCode/HackerRank-style coding practice platform with a mandatory AI mock interview module.
 
