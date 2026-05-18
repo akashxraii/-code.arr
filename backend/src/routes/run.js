@@ -38,7 +38,7 @@ router.post('/', async (req, res, next) => {
     if (tests.length === 0) return res.status(400).json({ error: 'No test cases found' });
 
     const startedAt = Date.now();
-    const result = await runAgainstTests({ code, language, tests });
+    const result = await runAgainstTests({ code, language, tests, problem });
     const runtime = Date.now() - startedAt;
     const passed = result.results.filter((item) => item.status === 'passed').length;
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const { pool, requireDatabase } = require('../db');
 const auth = require('../middleware/auth');
+const { streamInterviewSpeech } = require('../services/elevenLabsClient');
 const { generateQuestion, generateFeedback } = require('../services/geminiClient');
 
 const router = express.Router();
@@ -102,6 +103,24 @@ router.post('/:id/answer', requireDatabase, auth, async (req, res, next) => {
 
     res.json({ question });
   } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/:id/speech', requireDatabase, auth, async (req, res, next) => {
+  try {
+    const session = await loadSession(req.params.id, req.user.id);
+    if (!session) return res.status(404).json({ error: 'Interview not found' });
+
+    const speech = await streamInterviewSpeech(session.current_question);
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Type', speech.contentType);
+    speech.stream.on('error', next);
+    speech.stream.pipe(res);
+  } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
     next(err);
   }
 });

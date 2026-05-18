@@ -62,7 +62,7 @@ function InterviewSetup() {
           CV or resume
           <input
             type="file"
-            accept=".pdf,.doc,.docx,.txt"
+            accept=".pdf,.docx,.txt"
             onChange={(event) => setResume(event.target.files?.[0] || null)}
           />
         </label>

@@ -19,3 +19,14 @@
 6. Run the frontend with `npm run dev:frontend`.
 
 The AI interview works without a Gemini key by using a local fallback interviewer. Add `GEMINI_API_KEY` when you want real adaptive LLM responses.
+
+## AI Interview Voice
+
+The live interview room uses ElevenLabs for interviewer text-to-speech. Add these values to your backend environment before starting an interview:
+
+- `ELEVENLABS_API_KEY`
+- `ELEVENLABS_VOICE_ID`
+- `ELEVENLABS_MODEL_ID` (optional, defaults to `eleven_multilingual_v2`)
+- `ELEVENLABS_OUTPUT_FORMAT` (optional, defaults to `mp3_44100_128`)
+
+If ElevenLabs is not configured, the interview room shows a voice configuration error instead of falling back to the browser's robotic speech voice.

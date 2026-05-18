@@ -1,5 +1,31 @@
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
 
+function isLowEffortAnswer(answer) {
+  const normalized = String(answer || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^\w\s']/g, '');
+  if (!normalized) return false;
+
+  const words = normalized.split(/\s+/).filter(Boolean);
+  const lowEffortPhrases = new Set([
+    'hi',
+    'hello',
+    'hey',
+    'ok',
+    'okay',
+    'yes',
+    'no',
+    'good',
+    'fine',
+    'idk',
+    "i don't know",
+    'i dont know',
+  ]);
+
+  return words.length < 4 || lowEffortPhrases.has(normalized);
+}
+
 function fallbackQuestion({ domain, resumeText, answer, silence }) {
   const domainLabel = domain || 'software engineering';
   const resumeHint = resumeText ? 'I have reviewed your CV context.' : 'I will use your answers as context.';
@@ -9,6 +35,10 @@ function fallbackQuestion({ domain, resumeText, answer, silence }) {
   }
 
   if (answer) {
+    if (isLowEffortAnswer(answer)) {
+      return `I need a more detailed answer to evaluate you properly. Could you answer the previous question with a specific example from your CV or ${domainLabel} experience?`;
+    }
+
     const lower = answer.toLowerCase();
     if (lower.includes('react')) {
       return 'You mentioned React. How do you decide when to use state, context, or a dedicated state management library in a project?';
@@ -16,10 +46,10 @@ function fallbackQuestion({ domain, resumeText, answer, silence }) {
     if (lower.includes('project')) {
       return 'Tell me more about that project. What was the hardest technical decision you made, and why?';
     }
-    return `Good. Let us go deeper: what tradeoff did you consider while solving that ${domainLabel} problem?`;
+    return `Let us go deeper: what tradeoff did you consider while solving that ${domainLabel} problem?`;
   }
 
-  return `${resumeHint} Let us begin your ${domainLabel} interview. Can you introduce yourself and highlight one project from your CV?`;
+  return `Hi, welcome to your ${domainLabel} mock interview. ${resumeHint} To start, could you briefly introduce yourself and describe one project or experience from your CV?`;
 }
 
 function fallbackFeedback(messages) {
@@ -61,10 +91,18 @@ async function askGemini(prompt) {
 }
 
 async function generateQuestion({ domain, resumeText, history, answer, silence = false }) {
+  const isOpeningQuestion =
+    !answer && !silence && !(history || []).some((message) => message.role === 'user');
   const prompt = [
     'You are a realistic AI mock interviewer.',
     'Ask exactly one concise next question.',
-    'Adapt to the candidate CV, domain, and latest answer.',
+    isOpeningQuestion
+      ? 'This is the first question of the interview. Start with a brief warm greeting, then ask the candidate to introduce themselves and describe one CV project or experience before any technical deep dive.'
+      : 'Continue the interview naturally from the previous answer.',
+    'Adapt to the candidate CV, selected domain, conversation history, and latest answer.',
+    'Use the CV context when choosing project, skill, and experience follow-ups.',
+    'Do not praise low-effort, irrelevant, or greeting-only answers.',
+    'If the latest answer is too short, irrelevant, or only a greeting, ask the candidate to answer the previous question with a specific example.',
     'Do not produce feedback yet.',
     `Domain: ${domain}`,
     `CV context: ${resumeText || 'No CV text available'}`,

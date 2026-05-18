@@ -11,7 +11,7 @@ import InterviewFeedback from './pages/InterviewFeedback.jsx';
 import Navbar from './components/Navbar.jsx';
 import './App.css';
 
-const routesWithoutNavbar = ['/interview/room'];
+const routesWithoutNavbar = ['/interview/room', '/problems/'];
 
 function App() {
   const location = useLocation();

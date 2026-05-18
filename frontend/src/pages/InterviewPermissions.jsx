@@ -6,32 +6,52 @@ function InterviewPermissions() {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const [stream, setStream] = useState(null);
-  const [status, setStatus] = useState('Camera and microphone are not connected yet.');
+  const [status, setStatus] = useState('Waiting for Chrome to connect your camera and microphone.');
   const [error, setError] = useState('');
   const [isStarting, setIsStarting] = useState(false);
 
   useEffect(() => {
-    return () => {
-      stream?.getTracks().forEach((track) => track.stop());
-    };
-  }, [stream]);
+    let activeStream = null;
+    let isCancelled = false;
 
-  async function requestMedia() {
-    setError('');
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      setStream(mediaStream);
-      setStatus('Camera and microphone are ready.');
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
+    async function requestMedia() {
+      setError('');
+      try {
+        const mediaStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+
+        if (isCancelled) {
+          mediaStream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        activeStream = mediaStream;
+        setStream(mediaStream);
+        setStatus('Camera and microphone are ready.');
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      } catch (err) {
+        setStatus('Camera and microphone are not connected.');
+        setError(err.message || 'Camera or microphone permission was denied');
       }
-    } catch (err) {
-      setError(err.message || 'Camera or microphone permission was denied');
     }
-  }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setStatus('Camera and microphone are not connected.');
+      setError('Camera and microphone access is unavailable in this browser.');
+      return undefined;
+    }
+
+    requestMedia();
+
+    return () => {
+      isCancelled = true;
+      activeStream?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
 
   async function startInterview() {
     setIsStarting(true);
@@ -67,9 +87,6 @@ function InterviewPermissions() {
         {error && <p className="error-text">{error}</p>}
 
         <div className="button-row">
-          <button type="button" onClick={requestMedia}>
-            Open Camera + Mic
-          </button>
           <button
             className="primary-button"
             type="button"

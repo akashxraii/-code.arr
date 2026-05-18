@@ -99,7 +99,7 @@ function Home() {
             <p>Start with arrays, strings, hash maps, and clean reasoning patterns.</p>
             <footer>
               <span>Beginner</span>
-              <span>12 problems</span>
+              <span>79 problems</span>
             </footer>
           </article>
           <article className="course-card">

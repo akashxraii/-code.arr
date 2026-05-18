@@ -1,8 +1,48 @@
 const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
+const { problemSeeds } = require('../services/problemCatalog');
 require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 require('dotenv').config();
+
+async function seedProblems(pool) {
+  for (const problem of problemSeeds) {
+    const problemResult = await pool.query(
+      `INSERT INTO problems (slug, title, description, difficulty, tags, starter_code, function_name)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (slug) DO UPDATE SET
+         title = EXCLUDED.title,
+         description = EXCLUDED.description,
+         difficulty = EXCLUDED.difficulty,
+         tags = EXCLUDED.tags,
+         starter_code = EXCLUDED.starter_code,
+         function_name = EXCLUDED.function_name
+       RETURNING id`,
+      [
+        problem.slug,
+        problem.title,
+        problem.description,
+        problem.difficulty,
+        problem.tags,
+        problem.starter_code,
+        problem.function_name,
+      ],
+    );
+    const problemId = problemResult.rows[0].id;
+
+    for (const testCase of problem.testCases || []) {
+      await pool.query(
+        `INSERT INTO test_cases (problem_id, input, expected_output, is_sample)
+         SELECT $1, $2, $3, $4
+         WHERE NOT EXISTS (
+           SELECT 1 FROM test_cases
+           WHERE problem_id = $1 AND input = $2
+         )`,
+        [problemId, testCase.input, testCase.expected_output, Boolean(testCase.is_sample)],
+      );
+    }
+  }
+}
 
 async function init() {
   if (!process.env.DATABASE_URL) {
@@ -14,6 +54,7 @@ async function init() {
 
   try {
     await pool.query(schema);
+    await seedProblems(pool);
     console.log('Database schema initialized');
   } finally {
     await pool.end();

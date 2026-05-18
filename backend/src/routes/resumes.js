@@ -12,7 +12,7 @@ const upload = multer({
 
 router.post('/upload', requireDatabase, auth, upload.single('resume'), async (req, res, next) => {
   try {
-    const extractedText = extractResumeText(req.file);
+    const extractedText = await extractResumeText(req.file);
     const result = await pool.query(
       `INSERT INTO resumes (user_id, filename, mime_type, extracted_text)
        VALUES ($1, $2, $3, $4)
@@ -21,7 +21,7 @@ router.post('/upload', requireDatabase, auth, upload.single('resume'), async (re
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
-    if (err.message === 'Resume file is required') {
+    if (err.statusCode) {
       return res.status(400).json({ error: err.message });
     }
     next(err);

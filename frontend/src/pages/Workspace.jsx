@@ -2,6 +2,30 @@ import Editor from '@monaco-editor/react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
+import { getStatementConstraints, getStatementExamples } from '../data/problemStatement';
+import { getLanguageConfig, getLanguageTemplate, WORKSPACE_LANGUAGES } from '../data/workspaceLanguages';
+import { useWorkspaceSplit } from '../hooks/useWorkspaceSplit';
+
+function SunIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="theme-toggle-icon">
+      <circle cx="12" cy="12" r="4" />
+      <path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="theme-toggle-icon">
+      <path d="M20.2 14.3A7.4 7.4 0 0 1 9.7 3.8 8.5 8.5 0 1 0 20.2 14.3Z" />
+    </svg>
+  );
+}
+
+function getCodeStorageKey(slug, language) {
+  return `workspace_code:${slug}:${language}`;
+}
 
 function Workspace() {
   const { slug } = useParams();
@@ -9,37 +33,67 @@ function Workspace() {
   const [code, setCode] = useState('');
   const [language, setLanguage] = useState('javascript');
   const [results, setResults] = useState([]);
+  const [hasRunResults, setHasRunResults] = useState(false);
   const [status, setStatus] = useState('Ready');
   const [error, setError] = useState('');
   const [isRunning, setIsRunning] = useState(false);
+  const [cursorPosition, setCursorPosition] = useState({ lineNumber: 1, column: 1 });
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    return localStorage.getItem('workspace_theme') !== 'light';
+  });
+  const { isResizing, panelWidth, startResizing } = useWorkspaceSplit();
 
   const sampleCases = useMemo(() => problem?.testCases || [], [problem]);
+  const statementExamples = useMemo(() => getStatementExamples(problem), [problem]);
+  const statementConstraints = useMemo(() => getStatementConstraints(problem), [problem]);
+  const languageConfig = useMemo(() => getLanguageConfig(language), [language]);
+
+  useEffect(() => {
+    document.body.classList.toggle('workspace-dark-mode', isDarkMode);
+    localStorage.setItem('workspace_theme', isDarkMode ? 'dark' : 'light');
+
+    return () => {
+      document.body.classList.remove('workspace-dark-mode');
+    };
+  }, [isDarkMode]);
 
   useEffect(() => {
     api(`/api/problems/${slug}`)
       .then((payload) => {
         setProblem(payload);
-        setCode(
-          payload.starterCode?.javascript ||
-            'function solve(input) {\n  // Write your solution here\n  return "";\n}\n',
-        );
-        setResults(
-          (payload.testCases || []).map((testCase, index) => ({
-            label: `Case ${index + 1}`,
-            input: testCase.input,
-            expected: testCase.expected_output,
-            actual: '',
-            status: 'idle',
-          })),
-        );
+        setResults([]);
+        setHasRunResults(false);
+        setStatus('Ready');
       })
       .catch((err) => setError(err.message));
   }, [slug]);
+
+  useEffect(() => {
+    if (!problem) return;
+
+    const savedCode = localStorage.getItem(getCodeStorageKey(slug, language));
+    const starterCode = getLanguageTemplate(language, problem);
+    const shouldRefreshTwoSumJava =
+      slug === 'two-sum' && language === 'java' && savedCode && !savedCode.includes('twoSum(');
+
+    setCode(shouldRefreshTwoSumJava ? starterCode : savedCode ?? starterCode);
+    setResults([]);
+    setHasRunResults(false);
+    setStatus('Ready');
+    setError('');
+  }, [language, problem, slug]);
+
+  useEffect(() => {
+    if (!problem) return;
+
+    localStorage.setItem(getCodeStorageKey(slug, language), code);
+  }, [code, language, problem, slug]);
 
   async function run(mode) {
     setIsRunning(true);
     setError('');
     setStatus(mode === 'submit' ? 'Submitting...' : 'Running...');
+    setHasRunResults(true);
 
     try {
       const payload = await api('/api/run', {
@@ -74,88 +128,174 @@ function Workspace() {
 
   if (!problem) {
     return (
-      <main className="page">
+      <main className={`page workspace-loading-page ${isDarkMode ? 'workspace-loading-dark' : ''}`}>
         <p>{error || 'Loading problem...'}</p>
       </main>
     );
   }
 
   return (
-    <main className="workspace-page">
-      <aside className="workspace-sidebar">
-        <Link to="/problems" className="back-link">
-          Back to problems
-        </Link>
-        <h1>{problem.title}</h1>
-        <div className="tag-line">
-          <span className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</span>
-          {problem.tags?.map((tag) => (
-            <span key={tag}>{tag}</span>
-          ))}
+    <main
+      className={`workspace-page ${isDarkMode ? 'workspace-page-dark' : 'workspace-page-light'} ${
+        isResizing ? 'is-resizing' : ''
+      }`}
+      style={{ '--question-panel-width': `${panelWidth}px` }}
+    >
+      <header className="workspace-header">
+        <div className="workspace-header-left">
+          <Link to="/problems" className="back-link">
+            Back
+          </Link>
         </div>
-        <p>{problem.description}</p>
-        <h2>Samples</h2>
-        {sampleCases.map((testCase, index) => (
-          <div className="sample-box" key={`${testCase.input}-${index}`}>
-            <strong>Input</strong>
-            <pre>{testCase.input}</pre>
-            <strong>Expected</strong>
-            <pre>{testCase.expected_output}</pre>
-          </div>
-        ))}
-      </aside>
 
-      <section className="editor-shell">
-        <header className="workspace-toolbar">
-          <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-            <option value="javascript">JavaScript</option>
-            <option value="python">Python soon</option>
-            <option value="java">Java soon</option>
-          </select>
+        <div className="workspace-header-actions">
+          <button
+            type="button"
+            className="theme-toggle-button"
+            onClick={() => setIsDarkMode((value) => !value)}
+            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDarkMode ? <SunIcon /> : <MoonIcon />}
+          </button>
           <button type="button" onClick={() => run('run')} disabled={isRunning}>
             Run
           </button>
           <button type="button" className="primary-button" onClick={() => run('submit')} disabled={isRunning}>
             Submit
           </button>
-        </header>
-
-        <div className="editor-box">
-          <Editor
-            height="100%"
-            language="javascript"
-            theme="vs-dark"
-            value={code}
-            onChange={(value) => setCode(value || '')}
-            options={{
-              minimap: { enabled: false },
-              fontSize: 15,
-              lineHeight: 24,
-              scrollBeyondLastLine: false,
-              automaticLayout: true,
-            }}
-          />
         </div>
+      </header>
 
-        <section className="results-panel">
-          <div className="result-status">
-            <strong>{status}</strong>
-            {error && <span className="error-text">{error}</span>}
-          </div>
-          <div className="result-grid">
-            {results.map((result) => (
-              <article className={`result-card ${result.status}`} key={result.label}>
-                <h3>{result.label}</h3>
-                <p>{result.status}</p>
-                <pre>Input: {result.input}</pre>
-                <pre>Expected: {result.expected}</pre>
-                <pre>Actual: {result.actual}</pre>
-                {result.error && <pre>{result.error}</pre>}
-              </article>
+      <div className="workspace-body">
+        <aside className="workspace-sidebar">
+          <h1>{problem.title}</h1>
+          <div className="tag-line">
+            <span className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</span>
+            {problem.tags?.map((tag) => (
+              <span key={tag}>{tag}</span>
             ))}
           </div>
+          <p>{problem.description}</p>
+
+          {statementExamples.length > 0 && (
+            <section className="statement-section">
+              <h2>Examples</h2>
+              {statementExamples.map((example) => (
+                <div className="statement-example" key={example.label}>
+                  <strong>{example.label}</strong>
+                  <span>Input</span>
+                  <pre>{example.input}</pre>
+                  <span>Output</span>
+                  <pre>{example.output}</pre>
+                </div>
+              ))}
+            </section>
+          )}
+
+          {statementConstraints.length > 0 && (
+            <section className="statement-section">
+              <h2>Constraints</h2>
+              <ul className="constraint-list">
+                {statementConstraints.map((constraint) => (
+                  <li key={constraint}>{constraint}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {hasRunResults && (
+            <>
+              <h2>Test Cases</h2>
+              {sampleCases.map((testCase, index) => (
+                <div className="sample-box" key={`${testCase.input}-${index}`}>
+                  <strong>Input</strong>
+                  <pre>{testCase.input}</pre>
+                  <strong>Expected</strong>
+                  <pre>{testCase.expected_output}</pre>
+                </div>
+              ))}
+            </>
+          )}
+        </aside>
+
+        <button
+          type="button"
+          className="workspace-resizer"
+          onPointerDown={startResizing}
+          aria-label="Resize question and editor panels"
+        />
+
+        <section className={`editor-shell ${hasRunResults ? 'has-results' : ''}`}>
+          <div className="editor-card">
+            <div className="editor-topbar">
+              <div className="editor-title">
+                <strong>Code</strong>
+              </div>
+            </div>
+            <div className="editor-controlbar">
+              <select value={language} onChange={(event) => setLanguage(event.target.value)} aria-label="Language">
+                {WORKSPACE_LANGUAGES.map((item) => (
+                  <option value={item.id} key={item.id}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="editor-box">
+              <Editor
+                height="100%"
+                language={languageConfig.monaco}
+                theme={isDarkMode ? 'vs-dark' : 'light'}
+                value={code}
+                onChange={(value) => setCode(value || '')}
+                onMount={(editor) => {
+                  setCursorPosition(editor.getPosition() || { lineNumber: 1, column: 1 });
+                  editor.onDidChangeCursorPosition((event) => setCursorPosition(event.position));
+                }}
+                options={{
+                  minimap: { enabled: false },
+                  fontSize: 13,
+                  lineHeight: 21,
+                  fontFamily: '"Cascadia Code", "SFMono-Regular", Consolas, monospace',
+                  padding: { top: 8, bottom: 8 },
+                  renderLineHighlight: 'line',
+                  scrollBeyondLastLine: false,
+                  overviewRulerBorder: false,
+                  automaticLayout: true,
+                }}
+              />
+            </div>
+            <div className="editor-statusbar">
+              <span>Saved</span>
+              <span>
+                Ln {cursorPosition.lineNumber}, Col {cursorPosition.column}
+              </span>
+            </div>
+          </div>
+
+          {hasRunResults && (
+            <section className="results-panel">
+              <div className="result-status">
+                <strong>{status}</strong>
+                {error && <span className="error-text">{error}</span>}
+              </div>
+              <div className="result-grid">
+                {results.map((result) => (
+                  <article className={`result-card ${result.status}`} key={result.label}>
+                    <h3>{result.label}</h3>
+                    <p>{result.status}</p>
+                    <pre>Input: {result.input}</pre>
+                    <pre>Expected: {result.expected}</pre>
+                    <pre>Actual: {result.actual}</pre>
+                    {result.error && <pre>{result.error}</pre>}
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
         </section>
-      </section>
+      </div>
     </main>
   );
 }
