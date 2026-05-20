@@ -23,10 +23,19 @@ CREATE TABLE IF NOT EXISTS problems (
   tags TEXT[] DEFAULT '{}',
   starter_code JSONB DEFAULT '{}',
   function_name VARCHAR(80) DEFAULT 'solve',
+  input_signature JSONB DEFAULT '[]',
+  output_signature TEXT DEFAULT '',
+  examples JSONB DEFAULT '[]',
+  constraints TEXT[] DEFAULT '{}',
   time_limit INTEGER DEFAULT 1000,
   memory_limit INTEGER DEFAULT 128,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+ALTER TABLE problems ADD COLUMN IF NOT EXISTS input_signature JSONB DEFAULT '[]';
+ALTER TABLE problems ADD COLUMN IF NOT EXISTS output_signature TEXT DEFAULT '';
+ALTER TABLE problems ADD COLUMN IF NOT EXISTS examples JSONB DEFAULT '[]';
+ALTER TABLE problems ADD COLUMN IF NOT EXISTS constraints TEXT[] DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS test_cases (
   id SERIAL PRIMARY KEY,

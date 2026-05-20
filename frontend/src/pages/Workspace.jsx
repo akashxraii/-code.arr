@@ -2,7 +2,12 @@ import Editor from '@monaco-editor/react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api } from '../api';
-import { getStatementConstraints, getStatementExamples } from '../data/problemStatement';
+import {
+  getInputSignature,
+  getOutputSignature,
+  getStatementConstraints,
+  getStatementExamples,
+} from '../data/problemStatement';
 import { getLanguageConfig, getLanguageTemplate, WORKSPACE_LANGUAGES } from '../data/workspaceLanguages';
 import { useWorkspaceSplit } from '../hooks/useWorkspaceSplit';
 
@@ -27,6 +32,17 @@ function getCodeStorageKey(slug, language) {
   return `workspace_code:${slug}:${language}`;
 }
 
+function getStarterStorageKey(slug, language) {
+  return `workspace_starter:${slug}:${language}`;
+}
+
+function isLegacySolveDraft(code, problem) {
+  const functionName = problem?.functionName || problem?.function_name || 'solve';
+  const inputSignature = problem?.inputSignature || problem?.input_signature || [];
+
+  return functionName !== 'solve' && inputSignature.length > 0 && /\bsolve\s*\(/.test(code || '');
+}
+
 function Workspace() {
   const { slug } = useParams();
   const [problem, setProblem] = useState(null);
@@ -46,6 +62,8 @@ function Workspace() {
   const sampleCases = useMemo(() => problem?.testCases || [], [problem]);
   const statementExamples = useMemo(() => getStatementExamples(problem), [problem]);
   const statementConstraints = useMemo(() => getStatementConstraints(problem), [problem]);
+  const inputSignature = useMemo(() => getInputSignature(problem), [problem]);
+  const outputSignature = useMemo(() => getOutputSignature(problem), [problem]);
   const languageConfig = useMemo(() => getLanguageConfig(language), [language]);
 
   useEffect(() => {
@@ -71,12 +89,17 @@ function Workspace() {
   useEffect(() => {
     if (!problem) return;
 
-    const savedCode = localStorage.getItem(getCodeStorageKey(slug, language));
+    const codeKey = getCodeStorageKey(slug, language);
+    const starterKey = getStarterStorageKey(slug, language);
+    const savedCode = localStorage.getItem(codeKey);
+    const previousStarter = localStorage.getItem(starterKey);
     const starterCode = getLanguageTemplate(language, problem);
-    const shouldRefreshTwoSumJava =
-      slug === 'two-sum' && language === 'java' && savedCode && !savedCode.includes('twoSum(');
+    const starterChanged = previousStarter && previousStarter !== starterCode;
+    const savedCodeIsOldStarter = savedCode && previousStarter && savedCode.trim() === previousStarter.trim();
+    const savedCodeIsLegacySolve = isLegacySolveDraft(savedCode, problem);
 
-    setCode(shouldRefreshTwoSumJava ? starterCode : savedCode ?? starterCode);
+    setCode((starterChanged && savedCodeIsOldStarter) || savedCodeIsLegacySolve ? starterCode : savedCode ?? starterCode);
+    localStorage.setItem(starterKey, starterCode);
     setResults([]);
     setHasRunResults(false);
     setStatus('Ready');
@@ -178,6 +201,26 @@ function Workspace() {
           </div>
           <p>{problem.description}</p>
 
+          {(inputSignature.length > 0 || outputSignature) && (
+            <section className="statement-section">
+              <h2>Signature</h2>
+              {inputSignature.length > 0 && (
+                <div className="signature-list">
+                  {inputSignature.map((item) => (
+                    <span key={`${item.name}-${item.type}`}>
+                      <strong>{item.name}</strong>: {item.type}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {outputSignature && (
+                <p className="output-signature">
+                  Returns <strong>{outputSignature}</strong>
+                </p>
+              )}
+            </section>
+          )}
+
           {statementExamples.length > 0 && (
             <section className="statement-section">
               <h2>Examples</h2>
@@ -188,6 +231,7 @@ function Workspace() {
                   <pre>{example.input}</pre>
                   <span>Output</span>
                   <pre>{example.output}</pre>
+                  {example.explanation && <p className="example-explanation">{example.explanation}</p>}
                 </div>
               ))}
             </section>

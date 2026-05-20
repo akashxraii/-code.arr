@@ -2,6 +2,7 @@ const express = require('express');
 const { Queue } = require('bullmq');
 const { pool, requireDatabase } = require('../db');
 const auth = require('../middleware/auth');
+const { problems: fallbackProblems } = require('../services/problemFallback');
 
 const router = express.Router();
 let submissionQueue;
@@ -34,6 +35,21 @@ router.post('/', requireDatabase, auth, async (req, res, next) => {
     );
     const submission = submissionResult.rows[0];
 
+    const problemResult = await pool.query(
+      `SELECT id, slug, title, function_name, input_signature, output_signature
+       FROM problems WHERE id = $1`,
+      [problem_id],
+    );
+    const dbProblem = problemResult.rows[0];
+    if (!dbProblem) return res.status(404).json({ error: 'Problem not found' });
+    const catalogProblem = fallbackProblems.find((item) => item.slug === dbProblem.slug) || {};
+    const problem = {
+      ...dbProblem,
+      function_name: dbProblem.function_name === 'solve' ? catalogProblem.function_name || dbProblem.function_name : dbProblem.function_name,
+      input_signature: dbProblem.input_signature?.length ? dbProblem.input_signature : catalogProblem.inputSignature || [],
+      output_signature: dbProblem.output_signature || catalogProblem.outputSignature || '',
+    };
+
     const testsResult = await pool.query(
       'SELECT input, expected_output FROM test_cases WHERE problem_id = $1 ORDER BY id ASC',
       [problem_id],
@@ -44,6 +60,7 @@ router.post('/', requireDatabase, auth, async (req, res, next) => {
       language,
       code,
       tests: testsResult.rows,
+      problem,
     });
 
     res.status(201).json(submission);

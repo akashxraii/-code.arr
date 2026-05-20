@@ -8,15 +8,22 @@ require('dotenv').config();
 async function seedProblems(pool) {
   for (const problem of problemSeeds) {
     const problemResult = await pool.query(
-      `INSERT INTO problems (slug, title, description, difficulty, tags, starter_code, function_name)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO problems (
+         slug, title, description, difficulty, tags, starter_code, function_name,
+         input_signature, output_signature, examples, constraints
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        ON CONFLICT (slug) DO UPDATE SET
          title = EXCLUDED.title,
          description = EXCLUDED.description,
          difficulty = EXCLUDED.difficulty,
          tags = EXCLUDED.tags,
          starter_code = EXCLUDED.starter_code,
-         function_name = EXCLUDED.function_name
+         function_name = EXCLUDED.function_name,
+         input_signature = EXCLUDED.input_signature,
+         output_signature = EXCLUDED.output_signature,
+         examples = EXCLUDED.examples,
+         constraints = EXCLUDED.constraints
        RETURNING id`,
       [
         problem.slug,
@@ -26,6 +33,10 @@ async function seedProblems(pool) {
         problem.tags,
         problem.starter_code,
         problem.function_name,
+        JSON.stringify(problem.inputSignature || []),
+        problem.outputSignature || '',
+        JSON.stringify(problem.examples || []),
+        problem.constraints || [],
       ],
     );
     const problemId = problemResult.rows[0].id;

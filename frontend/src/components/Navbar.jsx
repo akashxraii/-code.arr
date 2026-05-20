@@ -16,8 +16,13 @@ function Navbar() {
         <span className="brand-mark">{'{}'}</span>code.arr
       </NavLink>
       <div className="nav-links nav-links-center">
-        <NavLink to="/problems">Problems</NavLink>
-        <NavLink to="/submissions">Submissions</NavLink>
+        <div className="nav-dropdown">
+          <button type="button" className="dropdown-toggle">Problems</button>
+          <div className="dropdown-menu">
+            <NavLink to="/problems">Practice</NavLink>
+            <NavLink to="/submissions">Submission</NavLink>
+          </div>
+        </div>
         <NavLink to="/interview">AI Interview</NavLink>
       </div>
       <div className="nav-links nav-links-auth">

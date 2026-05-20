@@ -8,9 +8,16 @@ function Login() {
   const [form, setForm] = useState({ username: '', email: '', password: '' });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   function updateField(event) {
     setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  }
+
+  function switchMode() {
+    setMode((current) => (current === 'login' ? 'register' : 'login'));
+    setError('');
   }
 
   async function submit(event) {
@@ -35,9 +42,35 @@ function Login() {
 
   return (
     <main className="page auth-page">
-      <form className="panel auth-panel" onSubmit={submit}>
-        <p className="eyebrow">{mode === 'login' ? 'Welcome back' : 'Create account'}</p>
-        <h1>{mode === 'login' ? 'Login' : 'Register'}</h1>
+      <form className="auth-panel" onSubmit={submit}>
+        <header className="auth-header">
+          <h1>{mode === 'login' ? 'Log in' : 'Sign up'}</h1>
+          <p>
+            {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
+            <button className="auth-inline-button" type="button" onClick={switchMode}>
+              {mode === 'login' ? 'Sign up' : 'Log in'}
+            </button>
+          </p>
+        </header>
+
+        <div className="social-auth-list" aria-label="Social sign-in options">
+          <button className="social-auth-button" type="button" disabled>
+            <span className="social-auth-icon google-icon" aria-hidden="true">G</span>
+            Continue with Google
+          </button>
+          <button className="social-auth-button" type="button" disabled>
+            <span className="social-auth-icon facebook-icon" aria-hidden="true">f</span>
+            Continue with Facebook
+          </button>
+          <button className="social-auth-button" type="button" disabled>
+            <span className="social-auth-icon apple-icon" aria-hidden="true">a</span>
+            Continue with Apple
+          </button>
+        </div>
+
+        <div className="auth-divider">
+          <span>Or continue with email</span>
+        </div>
 
         {mode === 'register' && (
           <label>
@@ -47,31 +80,48 @@ function Login() {
         )}
 
         <label>
-          Email
+          Email address
           <input type="email" name="email" value={form.email} onChange={updateField} />
         </label>
 
-        <label>
-          Password
-          <input
-            type="password"
-            name="password"
-            value={form.password}
-            onChange={updateField}
-          />
+        <label className="password-label">
+          <span>Password</span>
+          <div className="password-field">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              value={form.password}
+              onChange={updateField}
+            />
+            <button
+              className="password-toggle"
+              type="button"
+              onClick={() => setShowPassword((current) => !current)}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </label>
+
+        <div className="auth-options">
+          <label className="remember-option">
+            <input
+              type="checkbox"
+              checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)}
+            />
+            Remember me
+          </label>
+          <button className="forgot-link" type="button">
+            Forgot your password
+          </button>
+        </div>
 
         {error && <p className="error-text">{error}</p>}
 
-        <button className="primary-button" type="submit" disabled={isLoading}>
-          {isLoading ? 'Please wait...' : mode === 'login' ? 'Login' : 'Register'}
-        </button>
-        <button
-          className="text-button"
-          type="button"
-          onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
-        >
-          {mode === 'login' ? 'Need an account?' : 'Already have an account?'}
+        <button className="primary-button auth-submit" type="submit" disabled={isLoading}>
+          {isLoading ? 'Please wait...' : mode === 'login' ? 'Log in' : 'Sign up'}
         </button>
       </form>
     </main>

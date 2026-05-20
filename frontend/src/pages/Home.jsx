@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 
-const heroPhrase = '/*Like a fight club for coders*/';
+const heroPhrase = '<Like a fight club for coders>';
 
 function Home() {
   const [typedHero, setTypedHero] = useState('');

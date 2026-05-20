@@ -13,8 +13,15 @@ async function getProblemAndTests(problemSlug, mode) {
   }
 
   const problemResult = await pool.query('SELECT * FROM problems WHERE slug = $1', [problemSlug]);
-  const problem = problemResult.rows[0];
-  if (!problem) return { problem: null, tests: [] };
+  const dbProblem = problemResult.rows[0];
+  if (!dbProblem) return { problem: null, tests: [] };
+  const catalogProblem = fallbackProblems.find((item) => item.slug === dbProblem.slug) || {};
+  const problem = {
+    ...dbProblem,
+    function_name: dbProblem.function_name === 'solve' ? catalogProblem.function_name || dbProblem.function_name : dbProblem.function_name,
+    input_signature: dbProblem.input_signature?.length ? dbProblem.input_signature : catalogProblem.inputSignature || [],
+    output_signature: dbProblem.output_signature || catalogProblem.outputSignature || '',
+  };
 
   const params = mode === 'submit' ? [problem.id] : [problem.id, true];
   const where = mode === 'submit' ? 'problem_id = $1' : 'problem_id = $1 AND is_sample = $2';

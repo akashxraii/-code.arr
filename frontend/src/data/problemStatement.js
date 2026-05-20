@@ -23,6 +23,15 @@ function getGenericConstraints(problem) {
 }
 
 export function getStatementExamples(problem) {
+  if (problem?.examples?.length) {
+    return problem.examples.map((example, index) => ({
+      label: example.label || `Example ${index + 1}`,
+      input: example.input,
+      output: example.output,
+      explanation: example.explanation,
+    }));
+  }
+
   return (problem?.testCases || []).slice(0, 2).map((testCase, index) => ({
     label: `Example ${index + 1}`,
     input: testCase.input,
@@ -31,5 +40,15 @@ export function getStatementExamples(problem) {
 }
 
 export function getStatementConstraints(problem) {
+  if (problem?.constraints?.length) return problem.constraints;
+
   return PROBLEM_CONSTRAINTS[problem?.slug] || getGenericConstraints(problem);
+}
+
+export function getInputSignature(problem) {
+  return problem?.inputSignature || problem?.input_signature || [];
+}
+
+export function getOutputSignature(problem) {
+  return problem?.outputSignature || problem?.output_signature || '';
 }

@@ -7,6 +7,8 @@ const { problems: fallbackProblems } = require('../services/problemFallback');
 const router = express.Router();
 
 function shapeProblem(row, testCases = []) {
+  const catalogProblem = fallbackProblems.find((problem) => problem.slug === row.slug) || {};
+
   return {
     id: row.id,
     slug: row.slug,
@@ -15,7 +17,11 @@ function shapeProblem(row, testCases = []) {
     difficulty: row.difficulty,
     tags: row.tags || [],
     starterCode: row.starter_code || {},
-    functionName: row.function_name || 'solve',
+    functionName: row.function_name === 'solve' ? catalogProblem.function_name || row.function_name : row.function_name || 'solve',
+    inputSignature: row.input_signature?.length ? row.input_signature : catalogProblem.inputSignature || [],
+    outputSignature: row.output_signature || catalogProblem.outputSignature || '',
+    examples: row.examples || catalogProblem.examples || [],
+    constraints: row.constraints || catalogProblem.constraints || [],
     testCases,
   };
 }

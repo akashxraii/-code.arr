@@ -18,7 +18,7 @@ const redisConnection = {
 const worker = new Worker(
   'submissions',
   async (job) => {
-    const { submissionId, language, code, tests } = job.data;
+    const { submissionId, language, code, tests, problem } = job.data;
 
     await pool.query('UPDATE submissions SET status = $1 WHERE id = $2', [
       'running',
@@ -26,7 +26,7 @@ const worker = new Worker(
     ]);
 
     try {
-      const verdict = judgeSubmission({ language, code, tests });
+      const verdict = await judgeSubmission({ language, code, tests, problem });
       await pool.query(
         'UPDATE submissions SET status = $1, runtime = $2, error = $3 WHERE id = $4',
         [verdict.status, verdict.runtime, verdict.error || null, submissionId],

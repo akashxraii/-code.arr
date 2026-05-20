@@ -308,6 +308,7 @@ const problemSeeds = [
       'Return coordinates from which water can flow to both oceans, moving only from a cell to an equal or lower neighbor.',
     testCases: [
       { input: 'heights = [[1,2,2],[3,2,3],[2,4,5]]', expected_output: '[[0,2],[1,0],[1,2],[2,0],[2,1],[2,2]]', is_sample: true },
+      { input: 'heights = [[1]]', expected_output: '[[0,0]]', is_sample: true },
     ],
   },
   {
@@ -427,6 +428,7 @@ const problemSeeds = [
       'Abbreviate words longer than ten characters by keeping the first and last character with the omitted count between them.',
     testCases: [
       { input: 'words = ["localization","dog","internationalization"]', expected_output: '["l10n","dog","i18n"]', is_sample: true },
+      { input: 'words = ["word","pneumonoultramicroscopicsilicovolcanoconiosis"]', expected_output: '["word","p43s"]', is_sample: true },
     ],
   },
   {
@@ -486,6 +488,7 @@ const problemSeeds = [
       'A 5x5 matrix contains a single 1. Return the minimum adjacent swaps needed to move it to the center.',
     testCases: [
       { input: 'matrix = [[0,0,0,0,0],[0,0,0,0,1],[0,0,0,0,0],[0,0,0,0,0],[0,0,0,0,0]]', expected_output: '3', is_sample: true },
+      { input: 'matrix = [[0,0,0,0,0],[0,0,0,0,0],[0,0,1,0,0],[0,0,0,0,0],[0,0,0,0,0]]', expected_output: '0', is_sample: true },
     ],
   },
   {
@@ -701,6 +704,7 @@ const problemSeeds = [
       'Return the sum of large integers without losing precision.',
     testCases: [
       { input: 'arr = [1000000001,1000000002,1000000003,1000000004,1000000005]', expected_output: '5000000015', is_sample: true },
+      { input: 'arr = [9999999999,1]', expected_output: '10000000000', is_sample: true },
     ],
   },
   {
@@ -724,6 +728,7 @@ const problemSeeds = [
       'Return the fractions of positive, negative, and zero values in an array, each rounded to six decimals.',
     testCases: [
       { input: 'arr = [-4,3,-9,0,4,1]', expected_output: '0.500000\n0.333333\n0.166667', is_sample: true },
+      { input: 'arr = [1,1,0,-1,-1]', expected_output: '0.400000\n0.400000\n0.200000', is_sample: true },
     ],
   },
   {
@@ -795,6 +800,7 @@ const problemSeeds = [
       'Count apples and oranges that land within the house interval after falling from their trees.',
     testCases: [
       { input: 's = 7\nt = 11\na = 5\nb = 15\napples = [-2,2,1]\noranges = [5,-6]', expected_output: '1\n1', is_sample: true },
+      { input: 's = 2\nt = 3\na = 1\nb = 5\napples = [2]\noranges = [-2]', expected_output: '1\n1', is_sample: true },
     ],
   },
   {
@@ -955,9 +961,187 @@ const problemSeeds = [
   },
 ];
 
-const problems = problemSeeds.map((problem, index) => ({
+function splitInputLines(input) {
+  return String(input || '')
+    .split(/\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function inferValueType(name, rawValue) {
+  const value = String(rawValue || '').trim();
+  const lowerName = String(name || '').toLowerCase();
+
+  if (/^true$|^false$/i.test(value)) return 'boolean';
+  if (/^-?\d+\.\d+$/.test(value)) return 'double';
+  if (/^-?\d+$/.test(value)) {
+    return Math.abs(Number(value)) > 2147483647 || lowerName === 'n' ? 'long' : 'int';
+  }
+  if (value.startsWith('"') && value.endsWith('"')) return 'string';
+  if (value.startsWith('[[')) {
+    if (/"[^"]*"/.test(value)) return 'string[][]';
+    return 'int[][]';
+  }
+  if (value.startsWith('[')) {
+    if (/"[^"]*"/.test(value)) return 'string[]';
+    if (/null/.test(value)) return 'TreeNode';
+    return 'int[]';
+  }
+
+  return 'string';
+}
+
+function inferOutputType(expectedOutput) {
+  const output = String(expectedOutput || '').trim();
+
+  if (/^true$|^false$/i.test(output)) return 'boolean';
+  if (/^-?\d+\.\d+$/.test(output)) return 'double';
+  if (/^-?\d+$/.test(output)) return Math.abs(Number(output)) > 2147483647 ? 'long' : 'int';
+  if (output.startsWith('[[')) {
+    if (/"[^"]*"/.test(output)) return 'string[][]';
+    return 'int[][]';
+  }
+  if (output.startsWith('[')) {
+    if (/"[^"]*"/.test(output)) return 'string[]';
+    return 'int[]';
+  }
+  if (output.includes('\n')) return 'string';
+
+  return 'string';
+}
+
+function inferProblemOutputType(testCases = []) {
+  const types = testCases.map((testCase) => inferOutputType(testCase.expected_output));
+  if (types.includes('string')) return 'string';
+  if (types.includes('double')) return 'double';
+  if (types.includes('long')) return 'long';
+  return types[0] || 'string';
+}
+
+function buildInputSignature(problem) {
+  const firstSample = problem.testCases?.[0]?.input || '';
+
+  return splitInputLines(firstSample)
+    .map((line) => line.match(/^([A-Za-z_]\w*)\s*=\s*([\s\S]+)$/))
+    .filter(Boolean)
+    .map((match) => ({
+      name: match[1],
+      type: inferValueType(match[1], match[2]),
+    }));
+}
+
+function outputRuleFor(type) {
+  if (type.endsWith('[][]')) return `Return a ${type} in JSON-style nested array format.`;
+  if (type.endsWith('[]')) return `Return a ${type} in JSON-style array format.`;
+  if (type === 'boolean') return 'Return true or false in lowercase.';
+  if (type === 'string') return 'Return the exact string output shown by the examples.';
+  return `Return a single ${type} value.`;
+}
+
+function buildExamples(problem) {
+  return (problem.testCases || [])
+    .filter((testCase) => testCase.is_sample)
+    .slice(0, 2)
+    .map((testCase, index) => ({
+      label: `Example ${index + 1}`,
+      input: testCase.input,
+      output: testCase.expected_output,
+      explanation: `For the given input, the required result is ${testCase.expected_output || 'an empty string'}.`,
+    }));
+}
+
+function rangeConstraintForType(signature) {
+  if (!signature) return null;
+  if (signature.type.endsWith('[][]')) {
+    return `${signature.name} has between 1 and 200 rows and columns unless the prompt implies a smaller fixed shape.`;
+  }
+  if (signature.type.endsWith('[]')) {
+    return `1 <= ${signature.name}.length <= 100,000.`;
+  }
+  if (signature.type === 'string') {
+    return `0 <= ${signature.name}.length <= 100,000.`;
+  }
+  if (signature.type === 'long') {
+    return `0 <= ${signature.name} <= 10^12.`;
+  }
+  if (signature.type === 'int') {
+    return `-10^9 <= ${signature.name} <= 10^9.`;
+  }
+  return null;
+}
+
+function buildConstraints(problem, inputSignature, outputSignature) {
+  const constraints = [];
+  const firstInput = inputSignature[0];
+  const primaryRange = rangeConstraintForType(firstInput);
+
+  if (primaryRange) constraints.push(primaryRange);
+  if (inputSignature.length > 1) {
+    constraints.push(`All input variables use the names and types shown in the signature.`);
+  }
+  if (problem.tags.includes('Array')) {
+    constraints.push('Array values may include duplicates unless the statement says they are distinct.');
+  }
+  if (problem.tags.includes('String')) {
+    constraints.push('Strings may contain lowercase letters, uppercase letters, digits, spaces, or symbols as shown in the examples.');
+  }
+  if (problem.tags.includes('Graph')) {
+    constraints.push('Graph nodes are labeled with valid integer ids and edges use the pair format shown in the examples.');
+  }
+  if (problem.tags.includes('Grid') || problem.tags.includes('Matrix')) {
+    constraints.push('Grid and matrix cells use only the value types shown in the examples.');
+  }
+  if (problem.tags.includes('Dynamic Programming')) {
+    constraints.push('A brute force solution may time out on larger hidden tests.');
+  }
+  if (problem.slug === 'two-sum') {
+    constraints.push('Exactly one valid pair exists for each test case.');
+    constraints.push('Return two distinct indices in increasing order.');
+  }
+  constraints.push(outputRuleFor(outputSignature));
+
+  return [...new Set(constraints)].slice(0, 5);
+}
+
+function enrichProblem(problem) {
+  const specialSignatures = {
+    'merge-two-sorted-lists': {
+      inputSignature: [
+        { name: 'list1', type: 'ListNode' },
+        { name: 'list2', type: 'ListNode' },
+      ],
+      outputSignature: 'ListNode',
+    },
+    'serialize-and-deserialize-binary-tree': {
+      inputSignature: [{ name: 'root', type: 'TreeNode' }],
+      outputSignature: 'TreeNode',
+    },
+    'clone-graph': {
+      inputSignature: [{ name: 'node', type: 'Node' }],
+      outputSignature: 'Node',
+    },
+  };
+  const specialSignature = specialSignatures[problem.slug] || {};
+  const inputSignature = specialSignature.inputSignature || problem.inputSignature || buildInputSignature(problem);
+  const outputSignature =
+    specialSignature.outputSignature || problem.outputSignature || inferProblemOutputType(problem.testCases);
+
+  return {
+    ...problem,
+    inputSignature,
+    outputSignature,
+    examples: problem.examples || buildExamples(problem),
+    constraints: problem.constraints || buildConstraints(problem, inputSignature, outputSignature),
+  };
+}
+
+function slugToFunctionName(slug) {
+  return String(slug || 'solve').replace(/-([a-z0-9])/g, (_, value) => value.toUpperCase());
+}
+
+const problems = problemSeeds.map((problem, index) => enrichProblem({
   id: index + 1,
-  function_name: 'solve',
+  function_name: slugToFunctionName(problem.slug),
   starter_code: starterCode,
   ...problem,
   starter_code: problem.starter_code || starterCode,
