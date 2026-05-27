@@ -1,6 +1,9 @@
 const express = require('express');
 const { pool, requireDatabase } = require('../db');
 const auth = require('../middleware/auth');
+const { interviewLimiter } = require('../middleware/rateLimits');
+const { validateBody } = require('../middleware/validate');
+const { interviewCreateSchema, interviewAnswerSchema } = require('../schemas');
 const { streamInterviewSpeech } = require('../services/elevenLabsClient');
 const { generateQuestion, generateFeedback } = require('../services/geminiClient');
 
@@ -25,12 +28,8 @@ async function loadMessages(sessionId) {
   return result.rows;
 }
 
-router.post('/', requireDatabase, auth, async (req, res, next) => {
+router.post('/', interviewLimiter, requireDatabase, auth, validateBody(interviewCreateSchema), async (req, res, next) => {
   const { domain, resumeId } = req.body;
-
-  if (!domain || !resumeId) {
-    return res.status(400).json({ error: 'domain and resumeId are required' });
-  }
 
   try {
     const resumeResult = await pool.query(
@@ -66,12 +65,8 @@ router.post('/', requireDatabase, auth, async (req, res, next) => {
   }
 });
 
-router.post('/:id/answer', requireDatabase, auth, async (req, res, next) => {
+router.post('/:id/answer', interviewLimiter, requireDatabase, auth, validateBody(interviewAnswerSchema), async (req, res, next) => {
   const { answer } = req.body;
-
-  if (!answer) {
-    return res.status(400).json({ error: 'answer is required' });
-  }
 
   try {
     const session = await loadSession(req.params.id, req.user.id);
@@ -107,7 +102,7 @@ router.post('/:id/answer', requireDatabase, auth, async (req, res, next) => {
   }
 });
 
-router.post('/:id/speech', requireDatabase, auth, async (req, res, next) => {
+router.post('/:id/speech', interviewLimiter, requireDatabase, auth, async (req, res, next) => {
   try {
     const session = await loadSession(req.params.id, req.user.id);
     if (!session) return res.status(404).json({ error: 'Interview not found' });
@@ -125,7 +120,7 @@ router.post('/:id/speech', requireDatabase, auth, async (req, res, next) => {
   }
 });
 
-router.post('/:id/silence', requireDatabase, auth, async (req, res, next) => {
+router.post('/:id/silence', interviewLimiter, requireDatabase, auth, async (req, res, next) => {
   try {
     const session = await loadSession(req.params.id, req.user.id);
     if (!session) return res.status(404).json({ error: 'Interview not found' });
@@ -160,7 +155,7 @@ router.post('/:id/silence', requireDatabase, auth, async (req, res, next) => {
   }
 });
 
-router.post('/:id/finish', requireDatabase, auth, async (req, res, next) => {
+router.post('/:id/finish', interviewLimiter, requireDatabase, auth, async (req, res, next) => {
   try {
     const session = await loadSession(req.params.id, req.user.id);
     if (!session) return res.status(404).json({ error: 'Interview not found' });

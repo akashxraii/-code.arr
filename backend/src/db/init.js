@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { Pool } = require('pg');
 const { problemSeeds } = require('../services/problemCatalog');
+const { PLATFORM_TAGS, sanitizeTags } = require('../services/tags');
 require('dotenv').config({ path: path.resolve(__dirname, '../../../.env') });
 require('dotenv').config();
 
@@ -30,7 +31,7 @@ async function seedProblems(pool) {
         problem.title,
         problem.description,
         problem.difficulty,
-        problem.tags,
+        sanitizeTags(problem.tags),
         problem.starter_code,
         problem.function_name,
         JSON.stringify(problem.inputSignature || []),
@@ -53,6 +54,16 @@ async function seedProblems(pool) {
       );
     }
   }
+
+  await pool.query(
+    `UPDATE problems
+     SET tags = ARRAY(
+       SELECT DISTINCT tag
+       FROM unnest(tags) AS tag
+       WHERE lower(tag) <> ALL($1::text[])
+     )`,
+    [[...PLATFORM_TAGS]],
+  );
 }
 
 async function init() {

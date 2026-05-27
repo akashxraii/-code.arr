@@ -1,5 +1,5 @@
 {
-  "name": "technocode-backend",
+  "name": "code-arr-backend",
   "version": "1.0.0",
   "private": true,
   "main": "server.js",
@@ -8,17 +8,23 @@
     "dev": "node server.js",
     "start": "node server.js",
     "db:init": "node src/db/init.js",
-    "test": "node --check server.js && node --check src/index.js && node --check src/db/init.js && node --check src/services/problemCatalog.js && node --check src/services/codeRunner.js && node --check src/services/resumeParser.js && node --check src/services/geminiClient.js && node --check src/services/elevenLabsClient.js && node --check src/routes/auth.js && node --check src/routes/problems.js && node --check src/routes/run.js && node --check src/routes/submissions.js && node --check src/routes/resumes.js && node --check src/routes/interviews.js"
+    "test": "node --check server.js && node --check src/app.js && node --check src/index.js && node --check src/db/init.js && node --check src/services/problemCatalog.js && node --check src/services/codeRunner.js && node --check src/services/resumeParser.js && node --check src/services/geminiClient.js && node --check src/services/elevenLabsClient.js && node --check src/routes/auth.js && node --check src/routes/problems.js && node --check src/routes/run.js && node --check src/routes/submissions.js && node --check src/routes/resumes.js && node --check src/routes/interviews.js && node --test test/*.test.js"
   },
   "dependencies": {
     "bullmq": "^5.76.6",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.2",
     "mammoth": "^1.12.0",
     "multer": "^2.0.2",
     "pdf-parse": "^2.4.5",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "supertest": "^7.2.2"
   }
 }

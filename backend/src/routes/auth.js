@@ -2,6 +2,10 @@ const express = require('express');
 const jwt = require('jsonwebtoken');
 const { pool, requireDatabase } = require('../db');
 const auth = require('../middleware/auth');
+const { authLimiter } = require('../middleware/rateLimits');
+const { validateBody } = require('../middleware/validate');
+const config = require('../config');
+const { registerSchema, loginSchema } = require('../schemas');
 const { hashPassword, verifyPassword } = require('../services/password');
 
 const router = express.Router();
@@ -14,17 +18,13 @@ function signUser(user) {
       email: user.email,
       role: user.role,
     },
-    process.env.JWT_SECRET || 'dev-secret',
-    { expiresIn: '7d' },
+    config.jwtSecret,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '2h' },
   );
 }
 
-router.post('/register', requireDatabase, async (req, res, next) => {
+router.post('/register', authLimiter, requireDatabase, validateBody(registerSchema), async (req, res, next) => {
   const { username, email, password } = req.body;
-
-  if (!username || !email || !password) {
-    return res.status(400).json({ error: 'username, email and password are required' });
-  }
 
   try {
     const result = await pool.query(
@@ -43,12 +43,8 @@ router.post('/register', requireDatabase, async (req, res, next) => {
   }
 });
 
-router.post('/login', requireDatabase, async (req, res, next) => {
+router.post('/login', authLimiter, requireDatabase, validateBody(loginSchema), async (req, res, next) => {
   const { email, password } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
-  }
 
   try {
     const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);

@@ -1,12 +1,12 @@
 services:
   postgres:
     image: postgres:15
-    container_name: technocode_db
+    container_name: code_arr_db
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-technocode}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-technocode}
-      POSTGRES_DB: ${POSTGRES_DB:-technocode}
+      POSTGRES_USER: ${POSTGRES_USER:-code_arr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-code_arr}
+      POSTGRES_DB: ${POSTGRES_DB:-code_arr}
     ports:
       - "5432:5432"
     volumes:
@@ -14,7 +14,7 @@ services:
 
   redis:
     image: redis:7
-    container_name: technocode_redis
+    container_name: code_arr_redis
     restart: unless-stopped
     ports:
       - "6379:6379"

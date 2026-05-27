@@ -80,13 +80,18 @@ flowchart TD
 
 | File | Connected To | Purpose |
 | --- | --- | --- |
-| `backend/server.js` | `backend/src/index.js` | Small server entrypoint. Loads the actual Express app file. |
-| `backend/src/index.js` | all route files | Creates the Express app, loads env vars, enables CORS/JSON, mounts API routes, and starts the server. |
+| `backend/server.js` | `backend/src/index.js` | Small server entrypoint. Loads the actual server file. |
+| `backend/src/index.js` | `app.js` | Starts the Express server on the configured port. |
+| `backend/src/app.js` | all route files | Creates the Express app, enables Helmet, strict CORS, JSON parsing, route mounting, and safe error handling. |
+| `backend/src/config.js` | app, auth middleware, tests | Loads env vars and requires security-sensitive configuration such as `JWT_SECRET`. |
 | `backend/src/db/index.js` | route files | Creates the PostgreSQL pool and exports `requireDatabase` middleware. |
 | `backend/src/db/schema.sql` | `db/init.js`, PostgreSQL | Defines database tables for users, problems, test cases, submissions, resumes, interviews, messages, and feedback. Also seeds the first problem. |
 | `backend/src/db/init.js` | `schema.sql` | Runs the SQL schema against the configured PostgreSQL database. |
 | `backend/src/middleware/auth.js` | protected route files | Verifies JWT tokens and attaches `req.user`. |
 | `backend/src/middleware/admin.js` | admin problem routes | Allows only admin users through. |
+| `backend/src/middleware/rateLimits.js` | route files | Provides route-level abuse limits for auth, running code, submissions, uploads, and interviews. |
+| `backend/src/middleware/validate.js` | route files | Validates request bodies with Zod and returns structured 400 responses. |
+| `backend/src/schemas.js` | route files | Defines auth, run, submission, problem, and interview request schemas. |
 
 ### Backend Routes
 
@@ -105,8 +110,8 @@ flowchart TD
 | --- | --- | --- |
 | `backend/src/services/password.js` | `routes/auth.js` | Hashes and verifies passwords using Node crypto. |
 | `backend/src/services/problemFallback.js` | `routes/problems.js`, `routes/run.js` | Provides a local fallback problem when no database is configured. |
-| `backend/src/services/codeRunner.js` | `routes/run.js` | Runs JavaScript `solve(input)` code safely enough for the local MVP using Node `vm`. |
-| `backend/src/services/resumeParser.js` | `routes/resumes.js` | Extracts readable text from uploaded resumes for the AI interview context. |
+| `backend/src/services/codeRunner.js` | `routes/run.js`, worker runner | Wraps supported languages and runs user code in Docker sandboxes by default, with explicit process-mode fallback for trusted local development only. |
+| `backend/src/services/resumeParser.js` | `routes/resumes.js` | Validates PDF/DOCX/TXT uploads and extracts capped readable text for the AI interview context. |
 | `backend/src/services/geminiClient.js` | `routes/interviews.js` | Calls Gemini for adaptive questions and feedback, with a local fallback when no API key is configured. |
 
 ## Worker
@@ -129,7 +134,7 @@ flowchart TD
 | File | Connected To | Purpose |
 | --- | --- | --- |
 | `worker/src/worker.js` | Redis/BullMQ, PostgreSQL, `runner.js` | Listens for submission jobs, marks submissions as running, calls the judge, and updates final verdicts. |
-| `worker/src/runner.js` | `worker.js` | Executes JavaScript submissions against test cases and returns accepted, wrong answer, or runtime error. |
+| `worker/src/runner.js` | `worker.js`, backend `codeRunner.js` | Reuses the backend judge implementation so queued submissions follow the same Docker sandbox path as immediate runs. |
 | `worker/package.json` | npm | Defines worker dependencies and scripts. |
 
 ## Interconnection
@@ -190,4 +195,3 @@ flowchart LR
 - PostgreSQL stores long-term app data.
 - Redis/BullMQ handles background judging jobs.
 - Worker processes queued code submissions and writes verdicts back to the database.
-

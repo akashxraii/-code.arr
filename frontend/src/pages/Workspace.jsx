@@ -11,6 +11,12 @@ import {
 import { getLanguageConfig, getLanguageTemplate, WORKSPACE_LANGUAGES } from '../data/workspaceLanguages';
 import { useWorkspaceSplit } from '../hooks/useWorkspaceSplit';
 
+const HIDDEN_TAGS = new Set(['leetcode', 'codeforces', 'hackerrank', 'codechef']);
+
+function getVisibleTags(tags = []) {
+  return tags.filter((tag) => !HIDDEN_TAGS.has(String(tag).toLowerCase()));
+}
+
 function SunIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="theme-toggle-icon">
@@ -65,6 +71,7 @@ function Workspace() {
   const inputSignature = useMemo(() => getInputSignature(problem), [problem]);
   const outputSignature = useMemo(() => getOutputSignature(problem), [problem]);
   const languageConfig = useMemo(() => getLanguageConfig(language), [language]);
+  const visibleTags = useMemo(() => getVisibleTags(problem?.tags), [problem]);
 
   useEffect(() => {
     document.body.classList.toggle('workspace-dark-mode', isDarkMode);
@@ -195,7 +202,7 @@ function Workspace() {
           <h1>{problem.title}</h1>
           <div className="tag-line">
             <span className={`difficulty ${problem.difficulty}`}>{problem.difficulty}</span>
-            {problem.tags?.map((tag) => (
+            {visibleTags.map((tag) => (
               <span key={tag}>{tag}</span>
             ))}
           </div>

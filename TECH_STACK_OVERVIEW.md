@@ -1,8 +1,8 @@
-# Tech Stack Overview
+# code.arr Tech Stack Overview
 
 ## Project Context
 
-This project will be a coding practice and interview preparation platform inspired by LeetCode, HackerRank, and similar platforms. Users will be able to solve coding problems, run and submit code, track progress, and use a mandatory AI mock interview section that asks personalized questions using the user's selected domain, CV, and live interview answers.
+code.arr is a coding practice and interview preparation platform. Users can solve coding problems, run and submit code, track progress, and use a mandatory AI mock interview section that asks personalized questions using the user's selected domain, CV, and live interview answers.
 
 The reference project in `D:\TCode` already shows a useful direction for the architecture: a React frontend, an Express backend, PostgreSQL for data storage, Redis with BullMQ for submission queues, and a separate worker for judging code submissions.
 
@@ -183,13 +183,15 @@ The worker will help by:
 
 ### Docker-Based Code Isolation
 
-Docker-based isolation should be added as the safer long-term approach for running user code. Running user-submitted code directly on the machine is risky, so code should eventually run inside restricted containers.
+Docker-based isolation is now the default approach for running user code locally. Running user-submitted code directly on the machine is risky, so the runner executes allowlisted language wrappers inside restricted containers.
 
 Docker isolation will help by:
 
 - Limiting CPU, memory, and execution time.
 - Preventing unsafe file or system access.
 - Making the judging system safer and closer to real online judges.
+- Disabling container networking for submitted code.
+- Cleaning up each per-run container and temporary directory after execution.
 
 ### Submission Verdicts
 
@@ -378,6 +380,16 @@ They will store values such as:
 - Frontend API base URL.
 
 Environment variables will help keep secrets and environment-specific settings out of the source code.
+
+The backend now fails startup if `JWT_SECRET` is missing. `.env.example` documents safe placeholder values, while real secrets stay in the ignored root `.env` or the production host secret manager.
+
+### API Security Middleware
+
+The backend uses Helmet, strict CORS, route-level rate limits, and Zod validation. These controls protect auth, code execution, submissions, resume uploads, and interview endpoints from common abuse patterns and malformed input.
+
+### Frontend Deployment Headers
+
+The frontend includes Vercel response headers with a report-only Content Security Policy. Monaco requires a careful CSP rollout, so report-only mode is the first production-safe step before enforcement.
 
 ### Separate Services
 

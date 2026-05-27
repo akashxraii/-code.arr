@@ -53,4 +53,4 @@ worker.on('failed', (job, err) => {
   console.error(`Submission job ${job?.id} failed: ${err.message}`);
 });
 
-console.log('TechnoCode worker is waiting for submission jobs...');
+console.log('code.arr worker is waiting for submission jobs...');

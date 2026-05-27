@@ -1,8 +1,8 @@
-# Coding Practice Platform - Project Brief
+# code.arr - Project Brief
 
 ## Project Idea
 
-This project is a web app for practicing coding problems, similar to LeetCode, HackerRank, and CodeChef. Users can solve programming challenges, run their code against test cases, submit solutions, track progress, and improve their problem-solving skills.
+code.arr is a web app for practicing coding problems. Users can solve programming challenges, run their code against test cases, submit solutions, track progress, and improve their problem-solving skills.
 
 The goal is to build a clean, useful platform that shows strong full-stack development skills: authentication, problem management, code execution, submissions, leaderboards, dashboards, an admin panel, and a mandatory AI mock interview experience.
 
@@ -258,15 +258,17 @@ After the coding practice MVP works, the next important milestone should be the 
 - Pending
 - Judging
 
-## Important Security Notes
+## Current Security Baseline
 
-Running user code is dangerous, so code execution should be isolated. The safest production-ready approach is to run submissions in containers with strict limits for CPU, memory, time, file access, and network access.
+Running user code is dangerous, so code execution is isolated through Docker by default. The local runner uses allowlisted language images, no container network, memory/CPU/PID limits, a read-only root filesystem, per-run temporary directories, and timeout cleanup. `CODE_RUNNER_MODE=process` exists only as an explicit development fallback and should not be used with untrusted users.
 
-For a portfolio MVP, an external judge API or carefully restricted local sandbox can be used before building a complete judge system.
+The public API process is hardened with required JWT configuration, strict CORS, Helmet security headers, route-level rate limits, and Zod request validation. `/api/run` and `/api/submissions` require authentication.
 
-CV uploads also need careful handling because resumes contain personal information. Uploaded files should be stored securely, access should be limited to the owner, and users should be able to delete their CV and interview history.
+CV uploads are restricted to PDF, DOCX, and TXT files, capped at 2 MB, checked by extension, MIME type, and basic magic bytes, and extracted text is capped before being stored or sent to the AI interview prompt. Uploaded resume access is limited to the owning user.
 
 Camera and microphone access should only be requested on the interview setup page, and the app should clearly show whether permissions are enabled before the user starts the interview. The app should not record or store video/audio unless that behavior is clearly explained and intentionally implemented.
+
+For production deployment, Vercel should host only the React frontend. Render or another backend host should run the API, PostgreSQL, Redis, and a separate worker/runner service. Never run arbitrary user code inside the Vercel frontend or the main public API process without sandbox isolation.
 
 ## Success Criteria
 

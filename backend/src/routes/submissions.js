@@ -2,6 +2,9 @@ const express = require('express');
 const { Queue } = require('bullmq');
 const { pool, requireDatabase } = require('../db');
 const auth = require('../middleware/auth');
+const { submissionLimiter } = require('../middleware/rateLimits');
+const { validateBody } = require('../middleware/validate');
+const { submissionSchema } = require('../schemas');
 const { problems: fallbackProblems } = require('../services/problemFallback');
 
 const router = express.Router();
@@ -19,12 +22,8 @@ function getQueue() {
   return submissionQueue;
 }
 
-router.post('/', requireDatabase, auth, async (req, res, next) => {
+router.post('/', submissionLimiter, requireDatabase, auth, validateBody(submissionSchema), async (req, res, next) => {
   const { problem_id, language = 'javascript', code } = req.body;
-
-  if (!problem_id || !code) {
-    return res.status(400).json({ error: 'problem_id and code are required' });
-  }
 
   try {
     const submissionResult = await pool.query(

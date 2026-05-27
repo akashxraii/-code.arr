@@ -2,10 +2,19 @@ const fs = require('fs/promises');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
-const vm = require('vm');
 
 const MAX_CODE_LENGTH = 30000;
-const EXECUTION_TIMEOUT_MS = 2500;
+const EXECUTION_TIMEOUT_MS = Number(process.env.RUNNER_TIMEOUT_MS || 8000);
+const SUPPORTED_LANGUAGES = Object.freeze(['javascript', 'python', 'java', 'cpp', 'c', 'go']);
+const DOCKER_IMAGES = Object.freeze({
+  javascript: process.env.RUNNER_IMAGE_JAVASCRIPT || 'node:22-alpine',
+  python: process.env.RUNNER_IMAGE_PYTHON || 'python:3.12-alpine',
+  java: process.env.RUNNER_IMAGE_JAVA || 'eclipse-temurin:17-jdk-jammy',
+  cpp: process.env.RUNNER_IMAGE_CPP || 'gcc:14',
+  c: process.env.RUNNER_IMAGE_C || 'gcc:14',
+  go: process.env.RUNNER_IMAGE_GO || 'golang:1.23-alpine',
+});
+const CONTAINER_WORKDIR = '/workspace';
 
 function normalize(value) {
   return String(value || '').trim().replace(/\s+/g, '').toLowerCase();
@@ -15,6 +24,10 @@ function ensureCode(code) {
   if (typeof code !== 'string' || code.length > MAX_CODE_LENGTH) {
     throw new Error(`Code must be under ${MAX_CODE_LENGTH} characters`);
   }
+}
+
+function shouldUseDocker() {
+  return process.env.CODE_RUNNER_MODE !== 'process';
 }
 
 function getFunctionName(problem) {
@@ -124,8 +137,107 @@ function runProcess(command, args, input, options = {}) {
   });
 }
 
+function removeDockerContainer(containerName) {
+  return new Promise((resolve) => {
+    const cleanup = spawn('docker', ['rm', '-f', containerName], { windowsHide: true });
+    cleanup.on('error', () => resolve());
+    cleanup.on('close', () => resolve());
+  });
+}
+
+function runDockerProcess(image, command, args, input, options = {}) {
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const containerName = `code-arr-runner-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    const dockerArgs = [
+      'run',
+      '--rm',
+      '-i',
+      '--name',
+      containerName,
+      '--network',
+      'none',
+      '--memory',
+      process.env.RUNNER_MEMORY || '128m',
+      '--cpus',
+      process.env.RUNNER_CPUS || '0.5',
+      '--pids-limit',
+      process.env.RUNNER_PIDS_LIMIT || '64',
+      '--read-only',
+      '--tmpfs',
+      '/tmp:rw,exec,nosuid,nodev,size=64m',
+      '--security-opt',
+      'no-new-privileges',
+      '--cap-drop',
+      'ALL',
+      '--user',
+      process.env.RUNNER_USER || '1000:1000',
+      '-v',
+      `${options.cwd}:${CONTAINER_WORKDIR}`,
+      '-w',
+      CONTAINER_WORKDIR,
+      image,
+      command,
+      ...args,
+    ];
+    const child = spawn('docker', dockerArgs, {
+      shell: false,
+      windowsHide: true,
+    });
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      settled = true;
+      child.kill();
+      removeDockerContainer(containerName).then(() => resolve({
+        output: stdout,
+        error: `Execution timed out after ${EXECUTION_TIMEOUT_MS}ms`,
+        runtime: Date.now() - startedAt,
+      }));
+    }, EXECUTION_TIMEOUT_MS + 1000);
+
+    child.stdout.on('data', (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      stderr += chunk.toString();
+    });
+    child.on('error', (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({
+        output: stdout,
+        error: err.code === 'ENOENT' ? 'Docker is required for the secure code runner' : err.message,
+        runtime: Date.now() - startedAt,
+      });
+    });
+    child.on('close', (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve({
+        output: stdout,
+        error: code === 0 ? '' : stderr || `Sandbox exited with code ${code}`,
+        runtime: Date.now() - startedAt,
+      });
+    });
+
+    child.stdin.end(input || '');
+  });
+}
+
+function runSandboxedProcess(language, command, args, input, options = {}) {
+  if (!shouldUseDocker()) {
+    return runProcess(command, args, input, options);
+  }
+  return runDockerProcess(DOCKER_IMAGES[language], command, args, input, options);
+}
+
 async function withTempDir(task) {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'technocode-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'code-arr-'));
   try {
     return await task(dir);
   } finally {
@@ -233,29 +345,21 @@ function __serialize(value, type) {
 `;
 }
 
-function runJavaScript(code, input, problem) {
-  ensureCode(code);
-
-  const logs = [];
-  const sandbox = {
-    console: {
-      log: (...args) => logs.push(args.join(' ')),
-    },
-    module: { exports: {} },
-    exports: {},
-  };
-
+function javascriptWrapper(code, input, problem) {
   if (!isTypedProblem(problem)) {
-    vm.createContext(sandbox);
-    vm.runInContext(`${code}\nmodule.exports = typeof solve === 'function' ? solve : module.exports;`, sandbox, {
-      timeout: 1000,
-    });
-
-    const solve = sandbox.module.exports;
-    if (typeof solve !== 'function') throw new Error('Define a solve(input) function');
-
-    const output = solve(input);
-    return { output: output === undefined ? logs.join('\n') : String(output) };
+    return `
+const fs = require('fs');
+const logs = [];
+const originalLog = console.log;
+console.log = (...args) => logs.push(args.join(' '));
+${code}
+module.exports = typeof solve === 'function' ? solve : module.exports;
+if (typeof module.exports !== 'function') throw new Error('Define a solve(input) function');
+const __output = module.exports(fs.readFileSync(0, 'utf8'));
+console.log = originalLog;
+if (__output === undefined) process.stdout.write(logs.join('\\n'));
+else process.stdout.write(String(__output));
+`;
   }
 
   const functionName = getFunctionName(problem);
@@ -264,9 +368,10 @@ function runJavaScript(code, input, problem) {
   const argsJson = JSON.stringify(typedArgsFromInput(input, problem));
   const typeJson = JSON.stringify(inputSignature.map((param) => param.type));
 
-  vm.createContext(sandbox);
-  vm.runInContext(
-    `${jsHelpers()}
+  return `${jsHelpers()}
+const logs = [];
+const originalLog = console.log;
+console.log = (...args) => logs.push(args.join(' '));
 ${code}
 const __fn = typeof ${functionName} === 'function'
   ? ${functionName}
@@ -276,12 +381,18 @@ const __rawArgs = ${argsJson};
 const __types = ${typeJson};
 const __args = __rawArgs.map((value, index) => __hydrate(value, __types[index]));
 module.exports = __serialize(__fn(...__args), ${JSON.stringify(outputSignature)});
-`,
-    sandbox,
-    { timeout: 1000 },
-  );
+console.log = originalLog;
+process.stdout.write(String(module.exports ?? logs.join('\\n')));
+`;
+}
 
-  return { output: String(sandbox.module.exports ?? logs.join('\n')) };
+async function runJavaScript(code, input, problem) {
+  return withTempDir(async (dir) => {
+    const file = path.join(dir, 'solution.js');
+    await fs.writeFile(file, javascriptWrapper(code, input, problem));
+    const runPath = shouldUseDocker() ? `${CONTAINER_WORKDIR}/solution.js` : file;
+    return runSandboxedProcess('javascript', 'node', [runPath], input, { cwd: dir });
+  });
 }
 
 function pythonLiteral(value) {
@@ -1165,7 +1276,8 @@ async function runPython(code, input, problem) {
   return withTempDir(async (dir) => {
     const file = path.join(dir, 'solution.py');
     await fs.writeFile(file, pythonWrapper(code, input, problem));
-    return runProcess('python', [file], input, { cwd: dir });
+    const runPath = shouldUseDocker() ? `${CONTAINER_WORKDIR}/solution.py` : file;
+    return runSandboxedProcess('python', 'python', [runPath], input, { cwd: dir });
   });
 }
 
@@ -1173,20 +1285,26 @@ async function runJava(code, input, problem) {
   return withTempDir(async (dir) => {
     const file = path.join(dir, 'Main.java');
     await fs.writeFile(file, javaWrapper(code, input, problem));
-    const compile = await runProcess('javac', [file], '', { cwd: dir });
+    const runPath = shouldUseDocker() ? `${CONTAINER_WORKDIR}/Main.java` : file;
+    const compile = await runSandboxedProcess('java', 'javac', [runPath], '', { cwd: dir });
     if (compile.error) return compile;
-    return runProcess('java', ['-cp', dir, 'Main'], input, { cwd: dir });
+    const classPath = shouldUseDocker() ? CONTAINER_WORKDIR : dir;
+    return runSandboxedProcess('java', 'java', ['-cp', classPath, 'Main'], input, { cwd: dir });
   });
 }
 
 async function runCompiledCFamily(code, input, problem, config) {
   return withTempDir(async (dir) => {
     const source = path.join(dir, config.source);
-    const binary = path.join(dir, process.platform === 'win32' ? 'main.exe' : 'main');
+    const binaryName = shouldUseDocker() ? 'main' : process.platform === 'win32' ? 'main.exe' : 'main';
+    const binary = path.join(dir, binaryName);
     await fs.writeFile(source, config.wrap(code, input, problem));
-    const compile = await runProcess(config.compiler, [...config.args, source, '-o', binary], '', { cwd: dir });
+    const compileSource = shouldUseDocker() ? `${CONTAINER_WORKDIR}/${config.source}` : source;
+    const compileBinary = shouldUseDocker() ? `${CONTAINER_WORKDIR}/${binaryName}` : binary;
+    const compile = await runSandboxedProcess(config.language, config.compiler, [...config.args, compileSource, '-o', compileBinary], '', { cwd: dir });
     if (compile.error) return compile;
-    return runProcess(binary, [], input, { cwd: dir });
+    const runBinary = shouldUseDocker() ? `${CONTAINER_WORKDIR}/${binaryName}` : binary;
+    return runSandboxedProcess(config.language, runBinary, [], input, { cwd: dir });
   });
 }
 
@@ -1194,7 +1312,8 @@ async function runGo(code, input, problem) {
   return withTempDir(async (dir) => {
     const file = path.join(dir, 'main.go');
     await fs.writeFile(file, goWrapper(code, input, problem));
-    return runProcess('go', ['run', file], input, { cwd: dir });
+    const runPath = shouldUseDocker() ? `${CONTAINER_WORKDIR}/main.go` : file;
+    return runSandboxedProcess('go', 'go', ['run', runPath], input, { cwd: dir });
   });
 }
 
@@ -1205,6 +1324,7 @@ const runners = {
   cpp: (code, input, problem) =>
     runCompiledCFamily(code, input, problem, {
       source: 'main.cpp',
+      language: 'cpp',
       compiler: 'g++',
       args: ['-std=c++17', '-O2'],
       wrap: cppWrapper,
@@ -1212,6 +1332,7 @@ const runners = {
   c: (code, input, problem) =>
     runCompiledCFamily(code, input, problem, {
       source: 'main.c',
+      language: 'c',
       compiler: 'gcc',
       args: ['-O2'],
       wrap: cWrapper,
@@ -1292,4 +1413,6 @@ module.exports = {
   normalize,
   parseCaseInput,
   isTypedProblem,
+  SUPPORTED_LANGUAGES,
+  MAX_CODE_LENGTH,
 };

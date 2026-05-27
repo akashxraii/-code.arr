@@ -2,6 +2,7 @@ const mammoth = require('mammoth');
 const { PDFParse } = require('pdf-parse');
 
 const MIN_READABLE_CHARACTERS = 20;
+const MAX_EXTRACTED_CHARACTERS = 20000;
 
 function createParseError(message) {
   const error = new Error(message);
@@ -14,6 +15,27 @@ function normalizeText(text) {
     .replace(/\u0000/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function getExtension(file) {
+  return String(file.originalname || '').split('.').pop().toLowerCase();
+}
+
+function hasExpectedMagicBytes(file, extension, mimeType) {
+  const buffer = file.buffer || Buffer.alloc(0);
+  if (extension === 'pdf' || mimeType === 'application/pdf') {
+    return buffer.subarray(0, 4).toString('utf8') === '%PDF';
+  }
+  if (
+    extension === 'docx' ||
+    mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+  ) {
+    return buffer[0] === 0x50 && buffer[1] === 0x4b;
+  }
+  if (extension === 'txt' || mimeType === 'text/plain') {
+    return !buffer.includes(0);
+  }
+  return false;
 }
 
 async function extractPdfText(file) {
@@ -37,9 +59,13 @@ async function extractResumeText(file) {
     throw createParseError('Resume file is required');
   }
 
-  const extension = file.originalname.split('.').pop().toLowerCase();
+  const extension = getExtension(file);
   const mimeType = String(file.mimetype || '').toLowerCase();
   let extractedText = '';
+
+  if (!hasExpectedMagicBytes(file, extension, mimeType)) {
+    throw createParseError('Resume file contents do not match the uploaded format.');
+  }
 
   try {
     if (extension === 'txt' || mimeType === 'text/plain') {
@@ -66,7 +92,7 @@ async function extractResumeText(file) {
     );
   }
 
-  return readable;
+  return readable.slice(0, MAX_EXTRACTED_CHARACTERS);
 }
 
 module.exports = {

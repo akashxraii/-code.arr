@@ -1,5 +1,5 @@
 {
-  "name": "technocode-worker",
+  "name": "code-arr-worker",
   "version": "1.0.0",
   "private": true,
   "main": "src/worker.js",

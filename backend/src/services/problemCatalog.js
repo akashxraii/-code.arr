@@ -1,3 +1,5 @@
+const { sanitizeTags } = require('./tags');
+
 const starterCode = {
   javascript:
     'function solve(input) {\n  // Parse input and return the required answer as a string.\n  return "";\n}\n',
@@ -8,7 +10,7 @@ const problemSeeds = [
     slug: 'two-sum',
     title: 'Two Sum',
     difficulty: 'easy',
-    tags: ['LeetCode', 'Array', 'Hash Table'],
+    tags: ['Array', 'Hash Table'],
     description:
       'Find two distinct indices in an integer array whose values add up to the target. Return the indices in increasing order.',
     starter_code: {
@@ -27,7 +29,7 @@ const problemSeeds = [
     slug: 'valid-parentheses',
     title: 'Valid Parentheses',
     difficulty: 'easy',
-    tags: ['LeetCode', 'Stack', 'String'],
+    tags: ['Stack', 'String'],
     description:
       'Given a string containing bracket characters, decide whether every opening bracket is closed by the same type in the correct order.',
     testCases: [
@@ -39,7 +41,7 @@ const problemSeeds = [
     slug: 'merge-two-sorted-lists',
     title: 'Merge Two Sorted Lists',
     difficulty: 'easy',
-    tags: ['LeetCode', 'Linked List', 'Recursion'],
+    tags: ['Linked List', 'Recursion'],
     description:
       'Merge two sorted integer sequences into one sorted sequence while preserving all duplicate values.',
     testCases: [
@@ -51,7 +53,7 @@ const problemSeeds = [
     slug: 'best-time-to-buy-and-sell-stock',
     title: 'Best Time to Buy and Sell Stock',
     difficulty: 'easy',
-    tags: ['LeetCode', 'Array', 'Dynamic Programming'],
+    tags: ['Array', 'Dynamic Programming'],
     description:
       'Choose one buy day and one later sell day from a list of prices to maximize profit. Return zero if no profit is possible.',
     testCases: [
@@ -63,7 +65,7 @@ const problemSeeds = [
     slug: 'maximum-subarray',
     title: 'Maximum Subarray',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Array', 'Dynamic Programming'],
+    tags: ['Array', 'Dynamic Programming'],
     description:
       'Find the contiguous non-empty subarray with the largest possible sum and return that sum.',
     testCases: [
@@ -75,7 +77,7 @@ const problemSeeds = [
     slug: 'contains-duplicate',
     title: 'Contains Duplicate',
     difficulty: 'easy',
-    tags: ['LeetCode', 'Array', 'Hash Set'],
+    tags: ['Array', 'Hash Set'],
     description:
       'Determine whether any value appears at least twice in the provided integer array.',
     testCases: [
@@ -87,7 +89,7 @@ const problemSeeds = [
     slug: 'product-of-array-except-self',
     title: 'Product of Array Except Self',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Array', 'Prefix Product'],
+    tags: ['Array', 'Prefix Product'],
     description:
       'For each position, return the product of all array elements except the value at that position without using division.',
     testCases: [
@@ -99,7 +101,7 @@ const problemSeeds = [
     slug: 'maximum-product-subarray',
     title: 'Maximum Product Subarray',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Array', 'Dynamic Programming'],
+    tags: ['Array', 'Dynamic Programming'],
     description:
       'Return the largest product obtainable from a contiguous non-empty subarray.',
     testCases: [
@@ -111,7 +113,7 @@ const problemSeeds = [
     slug: 'find-minimum-in-rotated-sorted-array',
     title: 'Find Minimum in Rotated Sorted Array',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Binary Search', 'Array'],
+    tags: ['Binary Search', 'Array'],
     description:
       'A strictly increasing array was rotated at an unknown pivot. Return its minimum element in logarithmic time.',
     testCases: [
@@ -123,7 +125,7 @@ const problemSeeds = [
     slug: 'search-in-rotated-sorted-array',
     title: 'Search in Rotated Sorted Array',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Binary Search', 'Array'],
+    tags: ['Binary Search', 'Array'],
     description:
       'Search for a target in a rotated sorted array with distinct values. Return its index, or -1 when absent.',
     testCases: [
@@ -135,7 +137,7 @@ const problemSeeds = [
     slug: 'three-sum',
     title: '3Sum',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Two Pointers', 'Array'],
+    tags: ['Two Pointers', 'Array'],
     description:
       'Return all unique triplets whose values sum to zero. Triplets and the full answer should be sorted lexicographically.',
     testCases: [
@@ -147,7 +149,7 @@ const problemSeeds = [
     slug: 'container-with-most-water',
     title: 'Container With Most Water',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Two Pointers', 'Greedy'],
+    tags: ['Two Pointers', 'Greedy'],
     description:
       'Choose two vertical lines that trap the maximum area of water with the x-axis and return that area.',
     testCases: [
@@ -159,7 +161,7 @@ const problemSeeds = [
     slug: 'longest-substring-without-repeating-characters',
     title: 'Longest Substring Without Repeating Characters',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Sliding Window', 'String'],
+    tags: ['Sliding Window', 'String'],
     description:
       'Return the length of the longest contiguous substring that contains no repeated characters.',
     testCases: [
@@ -171,7 +173,7 @@ const problemSeeds = [
     slug: 'longest-palindromic-substring',
     title: 'Longest Palindromic Substring',
     difficulty: 'medium',
-    tags: ['LeetCode', 'String', 'Dynamic Programming'],
+    tags: ['String', 'Dynamic Programming'],
     description:
       'Find the longest contiguous substring that reads the same forward and backward. Return any one valid longest answer.',
     testCases: [
@@ -183,7 +185,7 @@ const problemSeeds = [
     slug: 'group-anagrams',
     title: 'Group Anagrams',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Hash Table', 'String'],
+    tags: ['Hash Table', 'String'],
     description:
       'Group words that are anagrams of each other. Sort each group and sort the list of groups by their first word.',
     testCases: [
@@ -195,7 +197,7 @@ const problemSeeds = [
     slug: 'top-k-frequent-elements',
     title: 'Top K Frequent Elements',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Heap', 'Hash Table'],
+    tags: ['Heap', 'Hash Table'],
     description:
       'Return the k numbers that occur most frequently. Break ties by smaller numeric value.',
     testCases: [
@@ -207,7 +209,7 @@ const problemSeeds = [
     slug: 'valid-anagram',
     title: 'Valid Anagram',
     difficulty: 'easy',
-    tags: ['LeetCode', 'String', 'Hash Table'],
+    tags: ['String', 'Hash Table'],
     description:
       'Decide whether two strings contain exactly the same characters with the same counts.',
     testCases: [
@@ -219,7 +221,7 @@ const problemSeeds = [
     slug: 'climbing-stairs',
     title: 'Climbing Stairs',
     difficulty: 'easy',
-    tags: ['LeetCode', 'Dynamic Programming', 'Math'],
+    tags: ['Dynamic Programming', 'Math'],
     description:
       'Count the number of distinct ways to reach step n when each move climbs either one or two steps.',
     testCases: [
@@ -231,7 +233,7 @@ const problemSeeds = [
     slug: 'coin-change',
     title: 'Coin Change',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Dynamic Programming', 'BFS'],
+    tags: ['Dynamic Programming', 'BFS'],
     description:
       'Given coin denominations and an amount, return the fewest coins needed to make the amount or -1 if impossible.',
     testCases: [
@@ -243,7 +245,7 @@ const problemSeeds = [
     slug: 'longest-increasing-subsequence',
     title: 'Longest Increasing Subsequence',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Dynamic Programming', 'Binary Search'],
+    tags: ['Dynamic Programming', 'Binary Search'],
     description:
       'Return the length of the longest strictly increasing subsequence in the array.',
     testCases: [
@@ -255,11 +257,11 @@ const problemSeeds = [
     slug: 'word-break',
     title: 'Word Break',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Dynamic Programming', 'Trie'],
+    tags: ['Dynamic Programming', 'Trie'],
     description:
       'Determine whether the string can be segmented into a sequence of one or more dictionary words.',
     testCases: [
-      { input: 's = "leetcode"\nwordDict = ["leet","code"]', expected_output: 'true', is_sample: true },
+      { input: 's = "codearr"\nwordDict = ["code","arr"]', expected_output: 'true', is_sample: true },
       { input: 's = "catsandog"\nwordDict = ["cats","dog","sand","and","cat"]', expected_output: 'false', is_sample: true },
     ],
   },
@@ -267,7 +269,7 @@ const problemSeeds = [
     slug: 'number-of-islands',
     title: 'Number of Islands',
     difficulty: 'medium',
-    tags: ['LeetCode', 'DFS', 'BFS', 'Grid'],
+    tags: ['DFS', 'BFS', 'Grid'],
     description:
       'Count connected groups of land cells in a grid where cells connect horizontally or vertically.',
     testCases: [
@@ -279,7 +281,7 @@ const problemSeeds = [
     slug: 'course-schedule',
     title: 'Course Schedule',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Graph', 'Topological Sort'],
+    tags: ['Graph', 'Topological Sort'],
     description:
       'Given prerequisite pairs, decide whether all courses can be completed without encountering a dependency cycle.',
     testCases: [
@@ -291,7 +293,7 @@ const problemSeeds = [
     slug: 'clone-graph',
     title: 'Clone Graph',
     difficulty: 'medium',
-    tags: ['LeetCode', 'Graph', 'DFS', 'BFS'],
+    tags: ['Graph', 'DFS', 'BFS'],
     description:
       'Given an adjacency list for an undirected graph, return the adjacency list of a deep copy with the same connectivity.',
     testCases: [
@@ -303,7 +305,7 @@ const problemSeeds = [
     slug: 'pacific-atlantic-water-flow',
     title: 'Pacific Atlantic Water Flow',
     difficulty: 'medium',
-    tags: ['LeetCode', 'DFS', 'BFS', 'Matrix'],
+    tags: ['DFS', 'BFS', 'Matrix'],
     description:
       'Return coordinates from which water can flow to both oceans, moving only from a cell to an equal or lower neighbor.',
     testCases: [
@@ -315,7 +317,7 @@ const problemSeeds = [
     slug: 'rotting-oranges',
     title: 'Rotting Oranges',
     difficulty: 'medium',
-    tags: ['LeetCode', 'BFS', 'Grid'],
+    tags: ['BFS', 'Grid'],
     description:
       'Each minute, rotten oranges turn adjacent fresh oranges rotten. Return the minutes needed to rot all oranges, or -1.',
     testCases: [
@@ -327,7 +329,7 @@ const problemSeeds = [
     slug: 'valid-palindrome',
     title: 'Valid Palindrome',
     difficulty: 'easy',
-    tags: ['LeetCode', 'Two Pointers', 'String'],
+    tags: ['Two Pointers', 'String'],
     description:
       'After removing non-alphanumeric characters and ignoring case, determine whether the string is a palindrome.',
     testCases: [
@@ -339,7 +341,7 @@ const problemSeeds = [
     slug: 'minimum-window-substring',
     title: 'Minimum Window Substring',
     difficulty: 'hard',
-    tags: ['LeetCode', 'Sliding Window', 'String'],
+    tags: ['Sliding Window', 'String'],
     description:
       'Return the shortest substring of s that contains every character of t with required multiplicities.',
     testCases: [
@@ -351,7 +353,7 @@ const problemSeeds = [
     slug: 'serialize-and-deserialize-binary-tree',
     title: 'Serialize and Deserialize Binary Tree',
     difficulty: 'hard',
-    tags: ['LeetCode', 'Tree', 'DFS', 'Design'],
+    tags: ['Tree', 'DFS', 'Design'],
     description:
       'Encode a binary tree into a compact string and decode it back. Return the serialized form after one round trip.',
     testCases: [
@@ -363,7 +365,7 @@ const problemSeeds = [
     slug: 'median-of-two-sorted-arrays',
     title: 'Median of Two Sorted Arrays',
     difficulty: 'hard',
-    tags: ['LeetCode', 'Binary Search', 'Array'],
+    tags: ['Binary Search', 'Array'],
     description:
       'Given two sorted arrays, compute the median of their combined values in logarithmic time.',
     testCases: [
@@ -375,7 +377,7 @@ const problemSeeds = [
     slug: 'trapping-rain-water',
     title: 'Trapping Rain Water',
     difficulty: 'hard',
-    tags: ['LeetCode', 'Two Pointers', 'Stack'],
+    tags: ['Two Pointers', 'Stack'],
     description:
       'Given bar heights, compute how much rainwater can be trapped after raining.',
     testCases: [
@@ -387,7 +389,7 @@ const problemSeeds = [
     slug: 'largest-rectangle-in-histogram',
     title: 'Largest Rectangle in Histogram',
     difficulty: 'hard',
-    tags: ['LeetCode', 'Stack', 'Array'],
+    tags: ['Stack', 'Array'],
     description:
       'Find the largest rectangular area that can be formed using adjacent bars in a histogram.',
     testCases: [
@@ -399,7 +401,7 @@ const problemSeeds = [
     slug: 'word-ladder',
     title: 'Word Ladder',
     difficulty: 'hard',
-    tags: ['LeetCode', 'BFS', 'String'],
+    tags: ['BFS', 'String'],
     description:
       'Find the length of the shortest transformation from beginWord to endWord, changing one character at a time through dictionary words.',
     testCases: [
@@ -411,7 +413,7 @@ const problemSeeds = [
     slug: 'watermelon',
     title: 'Watermelon',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Math', 'Implementation'],
+    tags: ['Math', 'Implementation'],
     description:
       'Given the weight of a watermelon, decide if it can be split into two positive even-weight parts.',
     testCases: [
@@ -423,7 +425,7 @@ const problemSeeds = [
     slug: 'way-too-long-words',
     title: 'Way Too Long Words',
     difficulty: 'easy',
-    tags: ['Codeforces', 'String', 'Implementation'],
+    tags: ['String', 'Implementation'],
     description:
       'Abbreviate words longer than ten characters by keeping the first and last character with the omitted count between them.',
     testCases: [
@@ -435,7 +437,7 @@ const problemSeeds = [
     slug: 'team',
     title: 'Team',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Implementation'],
+    tags: ['Implementation'],
     description:
       'Count how many proposed tasks a team will implement when at least two of three teammates are confident.',
     testCases: [
@@ -447,7 +449,7 @@ const problemSeeds = [
     slug: 'next-round',
     title: 'Next Round',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Sorting', 'Implementation'],
+    tags: ['Sorting', 'Implementation'],
     description:
       'Count contestants with positive scores at least as high as the kth-place score.',
     testCases: [
@@ -459,7 +461,7 @@ const problemSeeds = [
     slug: 'domino-piling',
     title: 'Domino Piling',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Math', 'Greedy'],
+    tags: ['Math', 'Greedy'],
     description:
       'Return the maximum number of 2x1 dominoes that fit on an m by n board without overlap.',
     testCases: [
@@ -471,7 +473,7 @@ const problemSeeds = [
     slug: 'bit-plus-plus',
     title: 'Bit++',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Implementation'],
+    tags: ['Implementation'],
     description:
       'Starting from zero, apply increment or decrement statements and return the final variable value.',
     testCases: [
@@ -483,7 +485,7 @@ const problemSeeds = [
     slug: 'beautiful-matrix',
     title: 'Beautiful Matrix',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Matrix', 'Implementation'],
+    tags: ['Matrix', 'Implementation'],
     description:
       'A 5x5 matrix contains a single 1. Return the minimum adjacent swaps needed to move it to the center.',
     testCases: [
@@ -495,7 +497,7 @@ const problemSeeds = [
     slug: 'petya-and-strings',
     title: 'Petya and Strings',
     difficulty: 'easy',
-    tags: ['Codeforces', 'String'],
+    tags: ['String'],
     description:
       'Compare two strings case-insensitively and return -1, 0, or 1 based on lexicographic order.',
     testCases: [
@@ -507,19 +509,19 @@ const problemSeeds = [
     slug: 'string-task',
     title: 'String Task',
     difficulty: 'easy',
-    tags: ['Codeforces', 'String'],
+    tags: ['String'],
     description:
       'Remove vowels, convert the remaining letters to lowercase, and place a dot before each remaining character.',
     testCases: [
       { input: 's = "tour"', expected_output: '.t.r', is_sample: true },
-      { input: 's = "Codeforces"', expected_output: '.c.d.f.r.c.s', is_sample: true },
+      { input: 's = "Programming"', expected_output: '.p.r.g.r.m.m.n.g', is_sample: true },
     ],
   },
   {
     slug: 'young-physicist',
     title: 'Young Physicist',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Math', 'Vectors'],
+    tags: ['Math', 'Vectors'],
     description:
       'Given force vectors in three dimensions, determine whether their vector sum is exactly zero.',
     testCases: [
@@ -531,7 +533,7 @@ const problemSeeds = [
     slug: 'helpful-maths',
     title: 'Helpful Maths',
     difficulty: 'easy',
-    tags: ['Codeforces', 'String', 'Sorting'],
+    tags: ['String', 'Sorting'],
     description:
       'Reorder the digits in an addition expression so the terms appear in nondecreasing order.',
     testCases: [
@@ -543,7 +545,7 @@ const problemSeeds = [
     slug: 'word-capitalization',
     title: 'Word Capitalization',
     difficulty: 'easy',
-    tags: ['Codeforces', 'String'],
+    tags: ['String'],
     description:
       'Capitalize the first letter of a word and leave the remaining characters unchanged.',
     testCases: [
@@ -555,7 +557,7 @@ const problemSeeds = [
     slug: 'boy-or-girl',
     title: 'Boy or Girl',
     difficulty: 'easy',
-    tags: ['Codeforces', 'String', 'Set'],
+    tags: ['String', 'Set'],
     description:
       'Count distinct letters in a username and return CHAT WITH HER! for an even count, otherwise IGNORE HIM!.',
     testCases: [
@@ -567,7 +569,7 @@ const problemSeeds = [
     slug: 'stones-on-the-table',
     title: 'Stones on the Table',
     difficulty: 'easy',
-    tags: ['Codeforces', 'String'],
+    tags: ['String'],
     description:
       'Return how many stones must be removed so no two neighboring stones have the same color.',
     testCases: [
@@ -579,7 +581,7 @@ const problemSeeds = [
     slug: 'elephant',
     title: 'Elephant',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Math', 'Greedy'],
+    tags: ['Math', 'Greedy'],
     description:
       'An elephant can move at most five units per step. Return the fewest steps needed to reach coordinate x.',
     testCases: [
@@ -591,7 +593,7 @@ const problemSeeds = [
     slug: 'queue-at-the-school',
     title: 'Queue at the School',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Simulation', 'String'],
+    tags: ['Simulation', 'String'],
     description:
       'Simulate t seconds of a queue where each BG pair swaps positions simultaneously every second.',
     testCases: [
@@ -603,7 +605,7 @@ const problemSeeds = [
     slug: 'nearly-lucky-number',
     title: 'Nearly Lucky Number',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Digits'],
+    tags: ['Digits'],
     description:
       'Count digits equal to 4 or 7, then decide whether that count itself is a lucky number.',
     testCases: [
@@ -615,7 +617,7 @@ const problemSeeds = [
     slug: 'dragons',
     title: 'Dragons',
     difficulty: 'medium',
-    tags: ['Codeforces', 'Greedy', 'Sorting'],
+    tags: ['Greedy', 'Sorting'],
     description:
       'Given initial strength and dragons with required strength and bonus, decide if all dragons can be defeated in some order.',
     testCases: [
@@ -627,7 +629,7 @@ const problemSeeds = [
     slug: 'twins',
     title: 'Twins',
     difficulty: 'medium',
-    tags: ['Codeforces', 'Greedy', 'Sorting'],
+    tags: ['Greedy', 'Sorting'],
     description:
       'Choose the minimum number of largest coins so their sum is strictly greater than the sum of the remaining coins.',
     testCases: [
@@ -639,7 +641,7 @@ const problemSeeds = [
     slug: 'arrival-of-the-general',
     title: 'Arrival of the General',
     difficulty: 'easy',
-    tags: ['Codeforces', 'Greedy', 'Array'],
+    tags: ['Greedy', 'Array'],
     description:
       'Return the minimum adjacent swaps needed to move the tallest soldier to the front and the shortest to the end.',
     testCases: [
@@ -651,7 +653,7 @@ const problemSeeds = [
     slug: 'football',
     title: 'Football',
     difficulty: 'easy',
-    tags: ['Codeforces', 'String'],
+    tags: ['String'],
     description:
       'Given a string of 0s and 1s, decide whether it contains at least seven equal characters consecutively.',
     testCases: [
@@ -663,7 +665,7 @@ const problemSeeds = [
     slug: 'solve-me-first',
     title: 'Solve Me First',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Warmup', 'Math'],
+    tags: ['Warmup', 'Math'],
     description:
       'Read two integers and return their sum.',
     testCases: [
@@ -675,7 +677,7 @@ const problemSeeds = [
     slug: 'simple-array-sum',
     title: 'Simple Array Sum',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array', 'Warmup'],
+    tags: ['Array', 'Warmup'],
     description:
       'Return the sum of all integers in the array.',
     testCases: [
@@ -687,7 +689,7 @@ const problemSeeds = [
     slug: 'compare-the-triplets',
     title: 'Compare the Triplets',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array'],
+    tags: ['Array'],
     description:
       'Compare two three-value rating arrays and award one point to the higher value at each index.',
     testCases: [
@@ -699,7 +701,7 @@ const problemSeeds = [
     slug: 'a-very-big-sum',
     title: 'A Very Big Sum',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array', 'BigInt'],
+    tags: ['Array', 'BigInt'],
     description:
       'Return the sum of large integers without losing precision.',
     testCases: [
@@ -711,7 +713,7 @@ const problemSeeds = [
     slug: 'diagonal-difference',
     title: 'Diagonal Difference',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Matrix'],
+    tags: ['Matrix'],
     description:
       'For a square matrix, return the absolute difference between the sums of its two diagonals.',
     testCases: [
@@ -723,7 +725,7 @@ const problemSeeds = [
     slug: 'plus-minus',
     title: 'Plus Minus',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array', 'Ratios'],
+    tags: ['Array', 'Ratios'],
     description:
       'Return the fractions of positive, negative, and zero values in an array, each rounded to six decimals.',
     testCases: [
@@ -735,7 +737,7 @@ const problemSeeds = [
     slug: 'staircase',
     title: 'Staircase',
     difficulty: 'easy',
-    tags: ['HackerRank', 'String', 'Formatting'],
+    tags: ['String', 'Formatting'],
     description:
       'Print a right-aligned staircase of height n using # characters and spaces.',
     testCases: [
@@ -747,7 +749,7 @@ const problemSeeds = [
     slug: 'mini-max-sum',
     title: 'Mini-Max Sum',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array', 'Sorting'],
+    tags: ['Array', 'Sorting'],
     description:
       'Given five integers, return the minimum and maximum sums obtainable by summing exactly four of them.',
     testCases: [
@@ -759,7 +761,7 @@ const problemSeeds = [
     slug: 'birthday-cake-candles',
     title: 'Birthday Cake Candles',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array'],
+    tags: ['Array'],
     description:
       'Return how many candles have the maximum height.',
     testCases: [
@@ -771,7 +773,7 @@ const problemSeeds = [
     slug: 'time-conversion',
     title: 'Time Conversion',
     difficulty: 'easy',
-    tags: ['HackerRank', 'String', 'Date Time'],
+    tags: ['String', 'Date Time'],
     description:
       'Convert a 12-hour time string with AM or PM into 24-hour format.',
     testCases: [
@@ -783,7 +785,7 @@ const problemSeeds = [
     slug: 'grading-students',
     title: 'Grading Students',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array', 'Implementation'],
+    tags: ['Array', 'Implementation'],
     description:
       'Round each passing grade up to the next multiple of five when the difference is less than three.',
     testCases: [
@@ -795,7 +797,7 @@ const problemSeeds = [
     slug: 'apple-and-orange',
     title: 'Apple and Orange',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Implementation'],
+    tags: ['Implementation'],
     description:
       'Count apples and oranges that land within the house interval after falling from their trees.',
     testCases: [
@@ -807,7 +809,7 @@ const problemSeeds = [
     slug: 'kangaroo',
     title: 'Kangaroo',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Math'],
+    tags: ['Math'],
     description:
       'Determine whether two jumpers starting at different positions with fixed jump lengths ever land at the same position.',
     testCases: [
@@ -819,7 +821,7 @@ const problemSeeds = [
     slug: 'between-two-sets',
     title: 'Between Two Sets',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Math', 'GCD', 'LCM'],
+    tags: ['Math', 'GCD', 'LCM'],
     description:
       'Count integers that are multiples of every value in the first array and factors of every value in the second array.',
     testCases: [
@@ -831,7 +833,7 @@ const problemSeeds = [
     slug: 'breaking-the-records',
     title: 'Breaking the Records',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array'],
+    tags: ['Array'],
     description:
       'Given scores over a season, count how many times the player breaks their highest and lowest records.',
     testCases: [
@@ -843,7 +845,7 @@ const problemSeeds = [
     slug: 'subarray-division',
     title: 'Subarray Division',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Sliding Window', 'Array'],
+    tags: ['Sliding Window', 'Array'],
     description:
       'Count contiguous segments of length m whose values sum to d.',
     testCases: [
@@ -855,7 +857,7 @@ const problemSeeds = [
     slug: 'divisible-sum-pairs',
     title: 'Divisible Sum Pairs',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array', 'Modulo'],
+    tags: ['Array', 'Modulo'],
     description:
       'Count index pairs whose values sum to a multiple of k.',
     testCases: [
@@ -867,7 +869,7 @@ const problemSeeds = [
     slug: 'migratory-birds',
     title: 'Migratory Birds',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Counting', 'Array'],
+    tags: ['Counting', 'Array'],
     description:
       'Return the smallest bird type id among the most frequently sighted types.',
     testCases: [
@@ -879,7 +881,7 @@ const problemSeeds = [
     slug: 'day-of-the-programmer',
     title: 'Day of the Programmer',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Date Time', 'Implementation'],
+    tags: ['Date Time', 'Implementation'],
     description:
       'Return the date of the 256th day of a given year in Russia, accounting for the calendar transition year.',
     testCases: [
@@ -891,7 +893,7 @@ const problemSeeds = [
     slug: 'bon-appetit',
     title: 'Bon Appetit',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Array', 'Implementation'],
+    tags: ['Array', 'Implementation'],
     description:
       'Determine whether the charged bill split is fair after excluding the item one person did not eat.',
     testCases: [
@@ -903,7 +905,7 @@ const problemSeeds = [
     slug: 'sock-merchant',
     title: 'Sock Merchant',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Counting', 'Hash Table'],
+    tags: ['Counting', 'Hash Table'],
     description:
       'Count how many matching pairs of socks can be made from colors in the pile.',
     testCases: [
@@ -915,7 +917,7 @@ const problemSeeds = [
     slug: 'counting-valleys',
     title: 'Counting Valleys',
     difficulty: 'easy',
-    tags: ['HackerRank', 'String', 'Simulation'],
+    tags: ['String', 'Simulation'],
     description:
       'Given a hike path of up and down steps, count valleys that start below sea level and end on returning to sea level.',
     testCases: [
@@ -927,7 +929,7 @@ const problemSeeds = [
     slug: 'jumping-on-the-clouds',
     title: 'Jumping on the Clouds',
     difficulty: 'easy',
-    tags: ['HackerRank', 'Greedy', 'Array'],
+    tags: ['Greedy', 'Array'],
     description:
       'Return the minimum jumps needed to reach the last cloud when you may jump one or two positions and must avoid thunderclouds.',
     testCases: [
@@ -939,7 +941,7 @@ const problemSeeds = [
     slug: 'repeated-string',
     title: 'Repeated String',
     difficulty: 'easy',
-    tags: ['HackerRank', 'String', 'Math'],
+    tags: ['String', 'Math'],
     description:
       'Count how many times the letter a appears in the first n characters of an infinitely repeated string.',
     testCases: [
@@ -951,7 +953,7 @@ const problemSeeds = [
     slug: 'sherlock-and-array',
     title: 'Sherlock and Array',
     difficulty: 'medium',
-    tags: ['HackerRank', 'Prefix Sum', 'Array'],
+    tags: ['Prefix Sum', 'Array'],
     description:
       'Determine whether there is an index where the sum of values to the left equals the sum of values to the right.',
     testCases: [
@@ -1104,6 +1106,7 @@ function buildConstraints(problem, inputSignature, outputSignature) {
 }
 
 function enrichProblem(problem) {
+  const tags = sanitizeTags(problem.tags);
   const specialSignatures = {
     'merge-two-sorted-lists': {
       inputSignature: [
@@ -1128,6 +1131,7 @@ function enrichProblem(problem) {
 
   return {
     ...problem,
+    tags,
     inputSignature,
     outputSignature,
     examples: problem.examples || buildExamples(problem),

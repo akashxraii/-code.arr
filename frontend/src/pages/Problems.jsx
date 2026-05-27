@@ -15,7 +15,7 @@ const DIFFICULTY_ORDER = {
   hard: 3,
 };
 
-const HIDDEN_TAGS = new Set(['leetcode', 'codeforces', 'hackerrank']);
+const HIDDEN_TAGS = new Set(['leetcode', 'codeforces', 'hackerrank', 'codechef']);
 
 function normalizeDifficulty(difficulty) {
   return String(difficulty || 'easy').toLowerCase();

@@ -2,7 +2,10 @@ const express = require('express');
 const { pool, hasDatabase, requireDatabase } = require('../db');
 const auth = require('../middleware/auth');
 const admin = require('../middleware/admin');
+const { validateBody } = require('../middleware/validate');
+const { problemCreateSchema } = require('../schemas');
 const { problems: fallbackProblems } = require('../services/problemFallback');
+const { sanitizeTags } = require('../services/tags');
 
 const router = express.Router();
 
@@ -15,7 +18,7 @@ function shapeProblem(row, testCases = []) {
     title: row.title,
     description: row.description,
     difficulty: row.difficulty,
-    tags: row.tags || [],
+    tags: sanitizeTags(row.tags),
     starterCode: row.starter_code || {},
     functionName: row.function_name === 'solve' ? catalogProblem.function_name || row.function_name : row.function_name || 'solve',
     inputSignature: row.input_signature?.length ? row.input_signature : catalogProblem.inputSignature || [],
@@ -72,21 +75,45 @@ router.get('/:slug', async (req, res, next) => {
   }
 });
 
-router.post('/', requireDatabase, auth, admin, async (req, res, next) => {
-  const { slug, title, description, difficulty, tags = [], starterCode = {}, testCases = [] } = req.body;
-
-  if (!slug || !title || !description || !difficulty) {
-    return res.status(400).json({ error: 'slug, title, description and difficulty are required' });
-  }
+router.post('/', requireDatabase, auth, admin, validateBody(problemCreateSchema), async (req, res, next) => {
+  const {
+    slug,
+    title,
+    description,
+    difficulty,
+    tags = [],
+    starterCode = {},
+    functionName = 'solve',
+    inputSignature = [],
+    outputSignature = '',
+    examples = [],
+    constraints = [],
+    testCases = [],
+  } = req.body;
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
     const result = await client.query(
-      `INSERT INTO problems (slug, title, description, difficulty, tags, starter_code)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO problems (
+         slug, title, description, difficulty, tags, starter_code, function_name,
+         input_signature, output_signature, examples, constraints
+       )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING *`,
-      [slug, title, description, difficulty, tags, starterCode],
+      [
+        slug,
+        title,
+        description,
+        difficulty,
+        sanitizeTags(tags),
+        starterCode,
+        functionName,
+        JSON.stringify(inputSignature),
+        outputSignature,
+        JSON.stringify(examples),
+        constraints,
+      ],
     );
     const problem = result.rows[0];
 

@@ -433,7 +433,7 @@ function InterviewRoom() {
 
       <footer className="interview-controls">
         <div>
-          <strong>TechnoCode AIR</strong>
+          <strong>code.arr AIR</strong>
           <span>{aiState}</span>
         </div>
         <div className="interview-timer" aria-label="Interview time remaining">

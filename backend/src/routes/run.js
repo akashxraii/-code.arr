@@ -1,5 +1,9 @@
 const express = require('express');
 const { pool, hasDatabase } = require('../db');
+const auth = require('../middleware/auth');
+const { runLimiter } = require('../middleware/rateLimits');
+const { validateBody } = require('../middleware/validate');
+const { runSchema } = require('../schemas');
 const { problems: fallbackProblems } = require('../services/problemFallback');
 const { runAgainstTests } = require('../services/codeRunner');
 
@@ -32,12 +36,8 @@ async function getProblemAndTests(problemSlug, mode) {
   return { problem, tests: testsResult.rows };
 }
 
-router.post('/', async (req, res, next) => {
+router.post('/', auth, runLimiter, validateBody(runSchema), async (req, res, next) => {
   const { problemSlug, language = 'javascript', code, mode = 'run' } = req.body;
-
-  if (!problemSlug || !code) {
-    return res.status(400).json({ error: 'problemSlug and code are required' });
-  }
 
   try {
     const { problem, tests } = await getProblemAndTests(problemSlug, mode);
