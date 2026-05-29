@@ -3,3 +3,9 @@
 .env.development.local
 .env.production.local
 node_modules
+
+CHANGES.md
+MY_TECH_STACK.md
+PAGES.md
+PROJECT_BRIEF.md
+TECH_STACK_OVERVIEW.md
