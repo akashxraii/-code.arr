@@ -29,9 +29,13 @@ function shapeProblem(row, testCases = []) {
   };
 }
 
+function shapeCatalogProblem(problem) {
+  return { ...problem, testCases: undefined };
+}
+
 router.get('/', async (req, res, next) => {
   if (!hasDatabase) {
-    return res.json(fallbackProblems.map((problem) => ({ ...problem, testCases: undefined })));
+    return res.json(fallbackProblems.map(shapeCatalogProblem));
   }
 
   try {
@@ -39,7 +43,13 @@ router.get('/', async (req, res, next) => {
       `SELECT id, slug, title, description, difficulty, tags, starter_code, function_name
        FROM problems ORDER BY id ASC`,
     );
-    res.json(result.rows.map((row) => shapeProblem(row)));
+    const rowsBySlug = new Set(result.rows.map((row) => row.slug));
+    const catalogOnlyProblems = fallbackProblems.filter((problem) => !rowsBySlug.has(problem.slug));
+
+    res.json([
+      ...result.rows.map((row) => shapeProblem(row)),
+      ...catalogOnlyProblems.map(shapeCatalogProblem),
+    ]);
   } catch (err) {
     next(err);
   }
@@ -58,7 +68,10 @@ router.get('/:slug', async (req, res, next) => {
     const problem = problemResult.rows[0];
 
     if (!problem) {
-      return res.status(404).json({ error: 'Problem not found' });
+      const fallbackProblem = fallbackProblems.find((item) => item.slug === req.params.slug);
+      return fallbackProblem
+        ? res.json(fallbackProblem)
+        : res.status(404).json({ error: 'Problem not found' });
     }
 
     const testsResult = await pool.query(

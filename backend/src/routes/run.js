@@ -18,7 +18,11 @@ async function getProblemAndTests(problemSlug, mode) {
 
   const problemResult = await pool.query('SELECT * FROM problems WHERE slug = $1', [problemSlug]);
   const dbProblem = problemResult.rows[0];
-  if (!dbProblem) return { problem: null, tests: [] };
+  if (!dbProblem) {
+    const problem = fallbackProblems.find((item) => item.slug === problemSlug);
+    const tests = problem?.testCases.filter((test) => mode === 'submit' || test.is_sample) || [];
+    return { problem, tests };
+  }
   const catalogProblem = fallbackProblems.find((item) => item.slug === dbProblem.slug) || {};
   const problem = {
     ...dbProblem,

@@ -29,6 +29,7 @@ function Problems() {
   const [problems, setProblems] = useState([]);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTopic, setSelectedTopic] = useState('');
   const [sortMode, setSortMode] = useState('default');
 
   useEffect(() => {
@@ -38,32 +39,38 @@ function Problems() {
   }, []);
 
   const featuredTopics = useMemo(() => {
-    const topics = [];
-    const seen = new Set();
+    const topicCounts = new Map();
 
     problems.forEach((problem) => {
       getVisibleTags(problem.tags).forEach((tag) => {
-        const key = tag.toLowerCase();
-        if (!seen.has(key)) {
-          seen.add(key);
-          topics.push(tag);
-        }
+        topicCounts.set(tag, (topicCounts.get(tag) || 0) + 1);
       });
     });
 
-    return topics.slice(0, 8);
+    return [...topicCounts.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name))
+      .slice(0, 12);
   }, [problems]);
 
   const visibleProblems = useMemo(() => {
     const query = searchTerm.trim().toLowerCase();
-    const filtered = query
-      ? problems.filter((problem) => {
-          const titleMatches = problem.title?.toLowerCase().includes(query);
-          const tagMatches = problem.tags?.some((tag) => tag.toLowerCase().includes(query));
-          const difficultyMatches = normalizeDifficulty(problem.difficulty).includes(query);
-          return titleMatches || tagMatches || difficultyMatches;
-        })
-      : [...problems];
+    const topic = selectedTopic.toLowerCase();
+    const filtered = problems.filter((problem) => {
+      const topicMatches =
+        !topic || problem.tags?.some((tag) => tag.toLowerCase() === topic);
+
+      if (!topicMatches) return false;
+
+      if (query) {
+        const titleMatches = problem.title?.toLowerCase().includes(query);
+        const tagMatches = problem.tags?.some((tag) => tag.toLowerCase().includes(query));
+        const difficultyMatches = normalizeDifficulty(problem.difficulty).includes(query);
+        return titleMatches || tagMatches || difficultyMatches;
+      }
+
+      return true;
+    });
 
     if (sortMode === 'title') {
       return filtered.sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
@@ -88,7 +95,7 @@ function Problems() {
     }
 
     return filtered;
-  }, [problems, searchTerm, sortMode]);
+  }, [problems, searchTerm, selectedTopic, sortMode]);
 
   const dailyProblem = problems[0] || FALLBACK_DAILY_PROBLEM;
   const dailyProblemPath = dailyProblem.slug ? `/problems/${dailyProblem.slug}` : '/problems';
@@ -113,18 +120,38 @@ function Problems() {
           </section>
 
           <section className="topic-panel" aria-labelledby="featured-topics">
-            <h2 id="featured-topics">Featured Topics</h2>
+            <div className="topic-panel-head">
+              <h2 id="featured-topics">Featured Topics</h2>
+              {selectedTopic && (
+                <button className="topic-clear" type="button" onClick={() => setSelectedTopic('')}>
+                  Clear
+                </button>
+              )}
+            </div>
             <div className="topic-list">
               {featuredTopics.length > 0 ? (
                 featuredTopics.map((topic) => (
-                  <button className="topic-chip" type="button" key={topic}>
-                    {topic}
+                  <button
+                    className={`topic-chip${selectedTopic === topic.name ? ' active' : ''}`}
+                    type="button"
+                    key={topic.name}
+                    onClick={() => setSelectedTopic((current) => (current === topic.name ? '' : topic.name))}
+                    aria-pressed={selectedTopic === topic.name}
+                  >
+                    <span>{topic.name}</span>
+                    <strong>{topic.count}</strong>
                   </button>
                 ))
               ) : (
                 <p>No topics loaded yet.</p>
               )}
             </div>
+            {selectedTopic && (
+              <p className="topic-filter-note">
+                Showing {visibleProblems.length} {selectedTopic} problem
+                {visibleProblems.length === 1 ? '' : 's'}.
+              </p>
+            )}
           </section>
         </aside>
 

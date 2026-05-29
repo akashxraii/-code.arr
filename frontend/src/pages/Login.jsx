@@ -75,29 +75,13 @@ function Login() {
         {mode === 'register' && (
           <label>
             Username
-            <input 
-              name="username" 
-              value={form.username} 
-              onChange={updateField}
-              required
-              minLength={3}
-              maxLength={50}
-              pattern="^[A-Za-z0-9_.-]+$"
-              title="Username must be 3-50 characters with letters, numbers, dots, hyphens, or underscores"
-            />
+            <input name="username" value={form.username} onChange={updateField} />
           </label>
         )}
 
         <label>
           Email address
-          <input 
-            type="email" 
-            name="email" 
-            value={form.email} 
-            onChange={updateField}
-            required
-            maxLength={120}
-          />
+          <input type="email" name="email" value={form.email} onChange={updateField} />
         </label>
 
         <label className="password-label">
@@ -108,9 +92,6 @@ function Login() {
               name="password"
               value={form.password}
               onChange={updateField}
-              required
-              minLength={mode === 'login' ? 1 : 8}
-              maxLength={200}
             />
             <button
               className="password-toggle"

@@ -31,13 +31,7 @@ export async function api(path, options = {}) {
   const payload = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    // Build detailed error message from validation details if available
-    let errorMessage = payload.error || 'Request failed';
-    if (payload.details && Array.isArray(payload.details)) {
-      const details = payload.details.map(d => `${d.path}: ${d.message}`).join(', ');
-      errorMessage = `${errorMessage} - ${details}`;
-    }
-    throw new Error(errorMessage);
+    throw new Error(payload.error || 'Request failed');
   }
 
   return payload;
