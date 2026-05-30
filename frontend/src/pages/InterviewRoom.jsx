@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { io } from 'socket.io-client';
 import { API_BASE_URL, api, getToken } from '../api';
 
 const SILENCE_TIMEOUT_MS = 4 * 60 * 1000;
@@ -51,6 +52,7 @@ function InterviewRoom() {
   const navigate = useNavigate();
   const videoRef = useRef(null);
   const recognitionRef = useRef(null);
+  const socketRef = useRef(null);
   const startListeningRef = useRef(null);
   const answerFinalizeTimerRef = useRef(null);
   const silenceTimerRef = useRef(null);
@@ -126,11 +128,16 @@ function InterviewRoom() {
     spokenAnswerRef.current = '';
     pendingTranscriptRef.current = '';
     setError('');
+    isSubmittingRef.current = true;
 
     try {
       const payload = await api(`/api/interviews/${id}/silence`, { method: 'POST' });
-      setQuestion(payload.question);
+      isSubmittingRef.current = false;
+      if (payload.question) {
+        setQuestion(payload.question);
+      }
     } catch (err) {
+      isSubmittingRef.current = false;
       setError(err.message);
       setAiState('listening');
       startListeningRef.current?.();
@@ -165,13 +172,15 @@ function InterviewRoom() {
           method: 'POST',
           body: JSON.stringify({ answer: spokenAnswer }),
         });
-        setQuestion(payload.question);
+        isSubmittingRef.current = false;
+        if (payload.question) {
+          setQuestion(payload.question);
+        }
       } catch (err) {
+        isSubmittingRef.current = false;
         setError(err.message);
         setAiState('listening');
         startListeningRef.current?.();
-      } finally {
-        isSubmittingRef.current = false;
       }
     },
     [clearAnswerFinalizeTimer, clearSilenceTimer, id, stopListening],
@@ -257,6 +266,65 @@ function InterviewRoom() {
   useEffect(() => {
     startListeningRef.current = startListening;
   }, [startListening]);
+
+  useEffect(() => {
+    const token = getToken();
+    if (!token) {
+      setError('Authentication is required for live interview updates.');
+      return undefined;
+    }
+
+    const socket = io(API_BASE_URL, {
+      auth: { token },
+      transports: ['websocket'],
+    });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('join:session', id);
+    });
+
+    socket.on('connect_error', (err) => {
+      if (err.message && !/xhr poll error|websocket error|timeout/i.test(err.message)) {
+        setError(err.message);
+      }
+    });
+
+    socket.on('join:error', (payload) => {
+      setError(payload?.error || 'Could not join live interview session.');
+    });
+
+    socket.on('ai:thinking', () => {
+      setAiState('thinking');
+    });
+
+    socket.on('ai:question_ready', (payload) => {
+      isSubmittingRef.current = false;
+      if (payload?.question) {
+        setQuestion(payload.question);
+      }
+    });
+
+    socket.on('ai:error', (payload) => {
+      isSubmittingRef.current = false;
+      setError(payload?.error || 'Could not prepare the next question.');
+      setAiState('listening');
+      startListeningRef.current?.();
+    });
+
+    return () => {
+      socket.off('connect');
+      socket.off('connect_error');
+      socket.off('join:error');
+      socket.off('ai:thinking');
+      socket.off('ai:question_ready');
+      socket.off('ai:error');
+      socket.disconnect();
+      if (socketRef.current === socket) {
+        socketRef.current = null;
+      }
+    };
+  }, [id]);
 
   useEffect(() => {
     let activeStream = null;
@@ -411,19 +479,36 @@ function InterviewRoom() {
   return (
     <main className="interview-room">
       <section className="interview-stage">
+        <div className="stage-ambient" aria-hidden="true" />
         <div className="question-panel">
+          <span>Current question</span>
           <p>{question}</p>
         </div>
 
-        <div className={`ai-orb ${aiState}`}>
-          <span />
+        <div className="orb-stage" aria-label={`AI interviewer is ${aiState}`}>
+          <div className={`ai-orb ${aiState}`}>
+            <span />
+          </div>
+          <div className="orb-brackets" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+            <span />
+          </div>
         </div>
 
-        <video className="user-tile" ref={videoRef} autoPlay muted playsInline />
+        <div className="user-tile-wrap">
+          <video className="user-tile" ref={videoRef} autoPlay muted playsInline />
+          <span>Live</span>
+          <strong>You</strong>
+        </div>
       </section>
 
       <aside className="transcript-panel">
-        <h2>Transcript</h2>
+        <div className="transcript-head">
+          <h2>Transcript</h2>
+          <span>{messages.length} lines</span>
+        </div>
         {messages.slice(-8).map((message, index) => (
           <p key={`${message.role}-${index}`}>
             <strong>{message.role === 'ai' ? 'AI' : 'You'}:</strong> {message.content}

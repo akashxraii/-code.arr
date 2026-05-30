@@ -32,7 +32,7 @@ function Login() {
         body: JSON.stringify(form),
       });
       setToken(payload.token);
-      navigate('/problems');
+      navigate('/');
     } catch (err) {
       setError(err.message);
     } finally {
