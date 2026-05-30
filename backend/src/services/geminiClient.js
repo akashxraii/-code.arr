@@ -1,4 +1,5 @@
 const GEMINI_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models';
+const DEFAULT_GEMINI_TIMEOUT_MS = 12000;
 
 function isLowEffortAnswer(answer) {
   const normalized = String(answer || '')
@@ -69,18 +70,33 @@ async function askGemini(prompt) {
 
   if (!apiKey) return null;
 
-  const response = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent?key=${apiKey}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: prompt }],
-        },
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.GEMINI_TIMEOUT_MS || DEFAULT_GEMINI_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response;
+
+  try {
+    response = await fetch(`${GEMINI_ENDPOINT}/${model}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: prompt }],
+          },
+        ],
+      }),
+    });
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error(`Gemini request timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(`Gemini request failed with ${response.status}`);
@@ -111,7 +127,12 @@ async function generateQuestion({ domain, resumeText, history, answer, silence =
     `Silence recovery: ${silence ? 'yes' : 'no'}`,
   ].join('\n\n');
 
-  const generated = await askGemini(prompt);
+  let generated = null;
+  try {
+    generated = await askGemini(prompt);
+  } catch (err) {
+    console.warn(err.message);
+  }
   return generated || fallbackQuestion({ domain, resumeText, answer, silence });
 }
 
@@ -125,7 +146,12 @@ async function generateFeedback({ domain, resumeText, history }) {
     `Conversation: ${JSON.stringify(history || [])}`,
   ].join('\n\n');
 
-  const generated = await askGemini(prompt);
+  let generated = null;
+  try {
+    generated = await askGemini(prompt);
+  } catch (err) {
+    console.warn(err.message);
+  }
   if (!generated) return fallbackFeedback(history || []);
 
   try {

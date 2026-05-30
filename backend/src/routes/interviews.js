@@ -28,6 +28,44 @@ async function loadMessages(sessionId) {
   return result.rows;
 }
 
+function emitToInterview(req, sessionId, event, payload = {}) {
+  req.app.get('io')?.to(`interview:${sessionId}`).emit(event, payload);
+}
+
+async function generateAndEmitQuestion(req, session, options = {}) {
+  emitToInterview(req, session.id, 'ai:thinking');
+
+  try {
+    const history = await loadMessages(session.id);
+    const question = await generateQuestion({
+      domain: session.domain,
+      resumeText: session.extracted_text,
+      history,
+      ...options,
+    });
+
+    await pool.query(
+      `INSERT INTO interview_messages (session_id, role, content)
+       VALUES ($1, 'ai', $2)`,
+      [session.id, question],
+    );
+    await pool.query('UPDATE interview_sessions SET current_question = $1 WHERE id = $2', [
+      question,
+      session.id,
+    ]);
+
+    emitToInterview(req, session.id, 'ai:question_ready', { question });
+    return { question };
+  } catch (err) {
+    console.error(err);
+    const error = err.message || 'Could not prepare the next question.';
+    emitToInterview(req, session.id, 'ai:error', {
+      error,
+    });
+    return { error };
+  }
+}
+
 router.post('/', interviewLimiter, requireDatabase, auth, validateBody(interviewCreateSchema), async (req, res, next) => {
   const { domain, resumeId } = req.body;
 
@@ -78,25 +116,8 @@ router.post('/:id/answer', interviewLimiter, requireDatabase, auth, validateBody
       [session.id, answer],
     );
 
-    const history = await loadMessages(session.id);
-    const question = await generateQuestion({
-      domain: session.domain,
-      resumeText: session.extracted_text,
-      history,
-      answer,
-    });
-
-    await pool.query(
-      `INSERT INTO interview_messages (session_id, role, content)
-       VALUES ($1, 'ai', $2)`,
-      [session.id, question],
-    );
-    await pool.query('UPDATE interview_sessions SET current_question = $1 WHERE id = $2', [
-      question,
-      session.id,
-    ]);
-
-    res.json({ question });
+    const nextQuestion = await generateAndEmitQuestion(req, session, { answer });
+    res.json({ received: true, ...nextQuestion });
   } catch (err) {
     next(err);
   }
@@ -131,25 +152,8 @@ router.post('/:id/silence', interviewLimiter, requireDatabase, auth, async (req,
       [session.id],
     );
 
-    const history = await loadMessages(session.id);
-    const question = await generateQuestion({
-      domain: session.domain,
-      resumeText: session.extracted_text,
-      history,
-      silence: true,
-    });
-
-    await pool.query(
-      `INSERT INTO interview_messages (session_id, role, content)
-       VALUES ($1, 'ai', $2)`,
-      [session.id, question],
-    );
-    await pool.query('UPDATE interview_sessions SET current_question = $1 WHERE id = $2', [
-      question,
-      session.id,
-    ]);
-
-    res.json({ question });
+    const nextQuestion = await generateAndEmitQuestion(req, session, { silence: true });
+    res.json({ received: true, ...nextQuestion });
   } catch (err) {
     next(err);
   }
